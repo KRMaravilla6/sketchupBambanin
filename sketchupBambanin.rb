@@ -221,11 +221,37 @@ return unless f && mat
 f.material = mat
 f.back_material = mat
 end
+# #region agent log
+$agent_dbg_path = 'c:/Users/kevinryan/project_bambanin/sketchupBambanin/sketchupBambanin/.cursor/debug-e4f4ee.log'
+$agent_arch_boxes = []
+def agent_dbg(hyp, loc, msg, data)
+  require 'json' unless defined?(JSON)
+  rec = { 'sessionId' => 'e4f4ee', 'timestamp' => (Time.now.to_f * 1000).to_i, 'location' => loc, 'message' => msg, 'hypothesisId' => hyp, 'data' => data }
+  File.open($agent_dbg_path, 'a') { |f| f.puts(rec.to_json) }
+rescue StandardError
+end
+def agent_record_box(name, x1, y1, x2, y2, z1, z2, src)
+  xmin, xmax = [x1.to_f, x2.to_f].minmax
+  ymin, ymax = [y1.to_f, y2.to_f].minmax
+  zmin, zmax = [z1.to_f, z2.to_f].minmax
+  vol = (xmax - xmin) * (ymax - ymin) * (zmax - zmin)
+  return if vol < 1.0e-6
+  $agent_arch_boxes << { 'name' => name.to_s, 'xmin' => xmin, 'ymin' => ymin, 'zmin' => zmin, 'xmax' => xmax, 'ymax' => ymax, 'zmax' => zmax, 'vol' => vol, 'src' => src }
+end
+# #endregion
 def add_box(parent_ents, x1, y1, x2, y2, z1, z2, mat = nil, name = nil)
 xmin, xmax = [x1, x2].minmax
 ymin, ymax = [y1, y2].minmax
 zmin, zmax = [z1, z2].minmax
 return nil if (xmax - xmin) < 1e-4 || (ymax - ymin) < 1e-4 || (zmax - zmin) < 1e-4
+# #region agent log
+nstr = name.to_s
+arch = nstr =~ /Wall|Slab|Floor|Rail|Guard|Handrail|Canopy|Soffit|Carriage|Tile|Landing|Railing|Balustrade|Ceiling|Facade|Spandrel/i
+zspan = zmax - zmin
+xy = (xmax - xmin) * (ymax - ymin)
+struct_unnamed = nstr.empty? && (zspan >= 0.20 || (xy >= 1.0 && zspan >= 0.10))
+agent_record_box(nstr.empty? ? format('unnamed_%.3f_%.3f_%.3f', xmin, ymin, zmin) : nstr, xmin, ymin, xmax, ymax, zmin, zmax, 'add_box') if arch || struct_unnamed
+# #endregion
 grp = parent_ents.add_group
 grp.name = name if name
 pts = [
@@ -410,6 +436,9 @@ end
 def add_luxury_tiled_floor(parent_ents, name, x1, y1, x2, y2, z_base, z_top, tile_w, tile_d, mat_primary, _mat_alt, mat_grout, _border_w = 0.0, _mat_border = nil, _add_veins = false)
 f_grp = parent_ents.add_group
 f_grp.name = name
+# #region agent log
+agent_record_box(name, x1, y1, x2, y2, z_base, z_top, 'floor')
+# #endregion
 fe = f_grp.entities
 xmin, xmax = [x1, x2].minmax
 ymin, ymax = [y1, y2].minmax
@@ -907,6 +936,14 @@ def build_monolithic_wall(shell_ents, fixtures_ents, id, x1, y1, x2, y2, t, z_ba
 wall_grp = shell_ents.add_group; wall_grp.name = "Wall_Solid_#{id}"; we = wall_grp.entities
 horizontal = (y1 - y2).abs < 1e-4
 s_min, s_max = horizontal ? [x1, x2].minmax : [y1, y2].minmax
+# #region agent log
+zt = [z_top_start.to_f, z_top_end.to_f].max
+if horizontal
+  agent_record_box("Wall_Solid_#{id}", s_min, y1 - t / 2.0, s_max, y1 + t / 2.0, z_base, zt, 'wall')
+else
+  agent_record_box("Wall_Solid_#{id}", x1 - t / 2.0, s_min, x1 + t / 2.0, s_max, z_base, zt, 'wall')
+end
+# #endregion
 doors = openings.select { |op| op[:type] == :door || op[:type] == :sliding_glass }.sort_by { |op| op[:r][0] }
 windows = openings.select { |op| op[:type] == :window }.sort_by { |op| op[:r][0] }
 vents = openings.select { |op| op[:type] == :vent }.sort_by { |op| op[:r][0] }
@@ -999,6 +1036,10 @@ end
 end
 def add_hyper_realistic_balcony_railing(parent_ents, name, x1, x2, y_center, z1, z2)
 g = parent_ents.add_group; g.name = name; ge = g.entities
+# #region agent log
+agent_record_box(name, x1, y_center - 0.048, x2, y_center + 0.048, z1, z2, 'railing')
+agent_dbg('B', 'sketchupBambanin.rb:balcony_railing', 'railing_aabb', { 'name' => name, 'x1' => x1, 'x2' => x2, 'y' => y_center, 'z1' => z1, 'z2' => z2 })
+# #endregion
 add_box(ge, x1, y_center - 0.04, x2, y_center + 0.04, z1, z1 + 0.045, M_METAL_BLK)
 add_box(ge, x1, y_center - 0.042, x2, y_center + 0.042, z1 + 0.045, z1 + 0.052, M_CHROME)
 add_box(ge, x1, y_center - 0.042, x2, y_center + 0.042, z2 - 0.045, z2, M_METAL_BLK)
@@ -1027,6 +1068,10 @@ g
 end
 def add_hyper_realistic_interior_glass_railing(parent_ents, name, x1, x2, y_center, z1, z2, num_bays = 4)
 g = parent_ents.add_group; g.name = name; ge = g.entities
+# #region agent log
+agent_record_box(name, x1, y_center - 0.040, x2, y_center + 0.040, z1, z2, 'railing')
+agent_dbg('B', 'sketchupBambanin.rb:interior_railing_x', 'railing_aabb', { 'name' => name, 'x1' => x1, 'x2' => x2, 'y' => y_center, 'z1' => z1, 'z2' => z2 })
+# #endregion
 add_box(ge, x1, y_center - 0.038, x2, y_center + 0.038, z1, z1 + 0.055, M_METAL_BLK)
 add_box(ge, x1, y_center - 0.040, x2, y_center + 0.040, z1 + 0.055, z1 + 0.062, M_CHROME)
 add_box(ge, x1, y_center - 0.038, x2, y_center + 0.038, z2 - 0.042, z2, M_WOOD_DARK)
@@ -1044,6 +1089,10 @@ g
 end
 def add_hyper_realistic_interior_glass_railing_y(parent_ents, name, x_center, y1, y2, z1, z2)
 g = parent_ents.add_group; g.name = name; ge = g.entities
+# #region agent log
+agent_record_box(name, x_center - 0.036, y1, x_center + 0.036, y2, z1, z2, 'railing')
+agent_dbg('B', 'sketchupBambanin.rb:interior_railing_y', 'railing_aabb', { 'name' => name, 'x' => x_center, 'y1' => y1, 'y2' => y2, 'z1' => z1, 'z2' => z2 })
+# #endregion
 add_box(ge, x_center - 0.034, y1, x_center + 0.034, y2, z1, z1 + 0.055, M_METAL_BLK)
 add_box(ge, x_center - 0.036, y1, x_center + 0.036, y2, z2 - 0.042, z2, M_WOOD_DARK)
 add_box(ge, x_center - 0.008, y1 + 0.04, x_center + 0.008, y2 - 0.04, z1 + 0.06, z2 - 0.05, M_RAIL_GLASS)
@@ -1677,6 +1726,10 @@ def add_xz_extrusion(parent_ents, name, y1, y2, xz_pts, mat)
 cleaned = []
 xz_pts.each { |x, z| cleaned << [x.to_f, z.to_f] if cleaned.empty? || (cleaned.last[0] - x.to_f).abs > 1e-6 || (cleaned.last[1] - z.to_f).abs > 1e-6 }
 return nil if cleaned.length < 3
+# #region agent log
+xs = cleaned.map { |p| p[0] }; zs = cleaned.map { |p| p[1] }
+agent_record_box(name.to_s.empty? ? 'xz_extrusion' : name, xs.min, y1, xs.max, y2, zs.min, zs.max, 'xz')
+# #endregion
 grp = parent_ents.add_group; grp.name = name if name; ge = grp.entities
 y_a, y_b = [y1, y2].minmax
 face = ge.add_face(cleaned.map { |x, z| Geom::Point3d.new(x.m, y_a.m, z.m) })
@@ -2114,6 +2167,51 @@ create_scene_tab(model, sname, Geom::Point3d.new(eye[0].m, eye[1].m, eye[2].m), 
 end
 model.pages.selected_page = model.pages['11_StairLanding'] if model.pages['11_StairLanding']
 model.active_view.refresh if model.active_view
+# #region agent log
+begin
+  def agent_cls(n)
+    s = n.to_s
+    return 'rail' if s =~ /Rail|Guard|Handrail|Balustrade|Newel/i
+    return 'wall' if s =~ /Wall_Solid_|Wall_|Facade|Spandrel/i || s.start_with?('Wall_')
+    return 'slab' if s =~ /Slab|Tiles|Tiled|Floor|Landing_Tiles|Carriage|Concrete/i
+    return 'ceil' if s =~ /Canopy|Soffit|Ceiling|Roof_/i
+    return 'stair' if s =~ /Stair|Winder|U_Turn/i
+    'other'
+  end
+  overlaps = []
+  boxes = $agent_arch_boxes
+  n = boxes.length
+  (0...n).each do |i|
+    a = boxes[i]
+    ((i + 1)...n).each do |j|
+      b = boxes[j]
+      next if a['name'] == b['name'] && a['src'] == b['src'] && (a['xmin'] - b['xmin']).abs < 1e-6 && (a['ymin'] - b['ymin']).abs < 1e-6 && (a['zmin'] - b['zmin']).abs < 1e-6
+      ox = [[a['xmax'], b['xmax']].min - [a['xmin'], b['xmin']].max, 0.0].max
+      oy = [[a['ymax'], b['ymax']].min - [a['ymin'], b['ymin']].max, 0.0].max
+      oz = [[a['zmax'], b['zmax']].min - [a['zmin'], b['zmin']].max, 0.0].max
+      ov = ox * oy * oz
+      next if ov < 0.002
+      next if ox < 0.012 || oy < 0.012 || oz < 0.012
+      ca = agent_cls(a['name']); cb = agent_cls(b['name'])
+      pair = [ca, cb].sort
+      hyp = if pair == ['slab', 'wall'] then 'A'
+            elsif pair == ['rail', 'rail'] || pair == ['rail', 'wall'] then 'B'
+            elsif a['name'] =~ /unnamed_/ && b['name'] =~ /unnamed_/ then 'C'
+            elsif pair.include?('stair') then 'D'
+            elsif pair == ['slab', 'slab'] || pair.include?('ceil') then 'E'
+            else 'C'
+            end
+      overlaps << { 'hyp' => hyp, 'vol' => ov.round(4), 'ox' => ox.round(3), 'oy' => oy.round(3), 'oz' => oz.round(3), 'a' => a['name'], 'b' => b['name'], 'az' => [a['zmin'].round(3), a['zmax'].round(3)], 'bz' => [b['zmin'].round(3), b['zmax'].round(3)] }
+    end
+  end
+  overlaps.sort_by! { |o| -o['vol'] }
+  counts = { 'A' => 0, 'B' => 0, 'C' => 0, 'D' => 0, 'E' => 0 }
+  overlaps.each { |o| counts[o['hyp']] += 1 }
+  agent_dbg('A', 'sketchupBambanin.rb:overlap_audit', 'overlap_summary', { 'box_count' => n, 'overlap_count' => overlaps.length, 'counts' => counts, 'top' => overlaps.first(25) })
+rescue StandardError => audit_err
+  agent_dbg('A', 'sketchupBambanin.rb:overlap_audit', 'audit_failed', { 'error' => audit_err.message })
+end
+# #endregion
 model.commit_operation
 puts '===================================================================='
 puts 'COMBINED MINIMAL ELEGANT EXTERIOR + UPGRADED INTERIOR COMPLETE!'
