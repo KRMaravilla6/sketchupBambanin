@@ -1747,16 +1747,20 @@ stair_grp = gffe_furn.add_group; stair_grp.name = 'Room_GF_to_2F_Staircase'; se_
 stair_grp.set_attribute('Stair_Design', 'tread_depth_mm', 275.0)
 stair_grp.set_attribute('Stair_Design', 'upper_tread_depth_mm', 280.0)
 stair_grp.set_attribute('Stair_Design', 'riser_height_mm', 187.5)
+stair_grp.set_attribute('Stair_Design', 'handrail_top_height_above_nosing_mm', 900.0)
+stair_grp.set_attribute('Stair_Design', 'handrail_diameter_mm', 40.0)
+stair_grp.set_attribute('Stair_Design', 'handrail_design_basis', 'Round graspable profile and 900 mm top height; verify dimensions, extensions, clearances, loads and local-code requirements with the authority having jurisdiction')
+stair_grp.set_attribute('Stair_Design', 'winder_guard_wall_clearance_mm', 12.0)
 stair_grp.set_attribute('Stair_Design', 'review_note', 'Conceptual 8 lower treads, 3 winder treads, 4 straight upper treads, protected Bedroom 2 door landing entirely inside stairwell. No living-room void encroachment; formal stair and structural compliance NOT established.')
 stair_grp.set_attribute('Stair_Design', 'landing_dimensions_mm', [905, 830])
 stair_grp.set_attribute('Stair_Design', 'bedroom_1_door', 'Original ground-floor door D6 remains unchanged')
 stair_grp.set_attribute('Stair_Design', 'living_room_double_height', 'Unaltered')
-zf = 0.020; riser = 3.000 / 16.0; going = 0.275; upper_going = 0.280; tread_t = 0.040; rail_h = 0.900; guard_h = 1.100
+zf = 0.020; riser = 3.000 / 16.0; going = 0.275; upper_going = 0.280; tread_t = 0.040; handrail_radius = 0.020; rail_h = 0.900 - handrail_radius; guard_h = 1.100
 lower_treads = 8; upper_treads = 4
 x0 = 6.775; x_land = x0 + lower_treads * going; x_east = 9.850; x_floor = x_land - upper_treads * upper_going
 y_s = 4.850; y_up2 = 5.670; y_lo1 = 5.730; y_n = 6.550
 z_land = zf + lower_treads * riser; z_ff2 = zf + 16 * riser
-z_low_nosing = lambda { |x| zf + riser + (x - x0) * (riser / going) }
+z_low_nosing = lambda { |x| zf + (x - x0) * (riser / going) }
 z_up_nosing = lambda { |x| z_ff2 - (x - x_floor) * (riser / upper_going) }
 low_profile = [[x0, zf], [x_land, zf], [x_land, zf + lower_treads * riser - tread_t]]
 lower_treads.downto(1) do |i|
@@ -1837,14 +1841,16 @@ add_box(se_st, x_w, y_s + 0.012, x_w + 0.016, y_up2 - 0.012, z_top - 0.006, z_to
 end
 add_box(se_st, x_floor, y_s, x_floor + 0.006, y_up2, z_land + 7 * riser, z_ff2, M_WALL_EXT)
 add_box(se_st, x_floor - 0.020, y_s, x_floor, y_up2, z_ff2 - 0.005, z_ff2, M_WOOD_OAK)
-add_raked_rail(se_st, 'Handrail_Lower_Outer', 6.365, 6.395, x0, z_low_nosing.call(x0) + rail_h, x_land, z_land + rail_h, 0.032, M_WOOD_DARK)
-add_raked_rail(se_st, 'Handrail_Upper_Outer', 5.005, 5.035, x_floor, z_up_nosing.call(x_floor) + rail_h, x_land, z_land + 3 * riser + rail_h, 0.032, M_WOOD_DARK)
+lower_rail_y = 6.380
+upper_rail_y = 5.020
+cylinder_between_mm(se_st, 'Handrail_Lower_Outer', [x0 * 1000, lower_rail_y * 1000, (z_low_nosing.call(x0) + rail_h) * 1000], [x_land * 1000, lower_rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
+cylinder_between_mm(se_st, 'Handrail_Upper_Outer', [x_floor * 1000, upper_rail_y * 1000, (z_up_nosing.call(x_floor) + rail_h) * 1000], [x_land * 1000, upper_rail_y * 1000, (z_up_nosing.call(x_land) + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
 [7.05, 7.86, 8.77].each_with_index do |bx, i|
-  bz = z_low_nosing.call(bx) + rail_h + 0.014
+  bz = z_low_nosing.call(bx) + rail_h
   cylinder_between_mm(se_st, "Stair_Lower_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, 6395, bz * 1000], [bx * 1000, 6450, bz * 1000], 9, M_CHROME, 12)
 end
 [8.02, 8.42, 8.82].each_with_index do |bx, i|
-  bz = z_up_nosing.call(bx) + rail_h + 0.014
+  bz = z_up_nosing.call(bx) + rail_h
   cylinder_between_mm(se_st, "Stair_Upper_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, 5005, bz * 1000], [bx * 1000, 4950, bz * 1000], 9, M_CHROME, 12)
 end
 turn_guard_grp = se_st.add_group
@@ -1852,11 +1858,17 @@ turn_guard_grp.name = 'Stair_Winder_Outer_Edge_Continuous_Glass_Guard'
 tg = turn_guard_grp.entities
 outer_guard_rx = radius_outer_x - 0.018
 outer_guard_ry = radius_outer_y - 0.018
+outer_guard_north_wall_y = 6.45
+outer_guard_south_wall_y = 4.95
 outer_guard_panels = 3
 outer_guard_segments = 16
 outer_guard_base_gap = 0.008
 outer_guard_cap_height = 0.034
 outer_guard_cap_halfwidth = 0.018
+outer_guard_first_angle = Math.asin((outer_guard_north_wall_y - 0.030 - centre_y) / outer_guard_ry) * 180.0 / Math::PI
+outer_guard_last_angle = -Math.asin((centre_y - outer_guard_south_wall_y - 0.030) / outer_guard_ry) * 180.0 / Math::PI
+outer_guard_first_t = (90.0 - outer_guard_first_angle) / 60.0
+outer_guard_last_t = (-30.0 - outer_guard_last_angle) / 60.0
 outer_guard_arc = lambda do |a, radial_offset = 0.0|
   theta = a * Math::PI / 180.0
   [centre_x + (outer_guard_rx + radial_offset) * Math.cos(theta), centre_y + (outer_guard_ry + radial_offset) * Math.sin(theta)]
@@ -1871,9 +1883,11 @@ outer_guard_panels.times do |j|
   shoe_ents = panel.entities.add_group.entities
   cap_ents = panel.entities.add_group.entities
   tread_level = z_land + (j + 1) * riser
+  panel_t_start = j.zero? ? outer_guard_first_t : 0.0
+  panel_t_end = j == outer_guard_panels - 1 ? outer_guard_last_t : 1.0
   (0...outer_guard_segments).each do |k|
-    t0 = k.to_f / outer_guard_segments
-    t1 = (k + 1.0) / outer_guard_segments
+    t0 = panel_t_start + (panel_t_end - panel_t_start) * k.to_f / outer_guard_segments
+    t1 = panel_t_start + (panel_t_end - panel_t_start) * (k + 1.0) / outer_guard_segments
     a0 = 90.0 - 60.0 * (j + t0)
     a1 = 90.0 - 60.0 * (j + t1)
     x0g, y0g = outer_guard_arc.call(a0)
@@ -1920,11 +1934,17 @@ outer_guard_panels.times do |j|
   end
 end
 [0,1,2,3].each do |point_num|
-  ang = 90.0 - point_num * 60.0
+  ang = if point_num.zero?
+    outer_guard_first_angle
+  elsif point_num == 3
+    outer_guard_last_angle
+  else
+    90.0 - point_num * 60.0
+  end
   sx, sy = outer_guard_arc.call(ang)
   step_num = [point_num + 1, 3].min
   start_z = z_land + step_num * riser + outer_guard_base_gap
-  end_z = outer_guard_top_z.call([point_num, 2].min, 0.0) - outer_guard_cap_height
+  end_z = outer_guard_top_z.call([point_num, 2].min, point_num.zero? ? outer_guard_first_t : 0.0) - outer_guard_cap_height
   end_z = z_land + 3 * riser + guard_h - outer_guard_cap_height if point_num == 3
   cylinder_between_mm(tg, "Stair_Winder_Outer_Guard_Anchor_#{point_num + 1}", [sx * 1000, sy * 1000, start_z * 1000], [sx * 1000, sy * 1000, end_z * 1000], 12, M_METAL_BLK, 14)
 end
@@ -1933,9 +1953,9 @@ turn_guard_grp.set_attribute('Stair_Guard', 'purpose', 'Outer radius falling-edg
 turn_guard_grp.set_attribute('Stair_Guard', 'design_status', 'Concept only; actual guard anchorages, stair clearance, handrails and fire-code compliance require review before construction')
 add_xz_extrusion(se_st, 'Centre_Well_Glass_Guard', 5.690, 5.705, [[7.855, z_low_nosing.call(7.855) + 0.040], [x_land - 0.010, z_low_nosing.call(x_land - 0.010) + 0.040], [x_land - 0.010, z_land + 3 * riser + guard_h - 0.040], [7.855, z_up_nosing.call(7.855) + guard_h - 0.040]], M_RAIL_GLASS)
 add_raked_rail(se_st, 'Centre_Guard_Cap_U', 5.678, 5.722, x_land, z_land + 3 * riser + guard_h - 0.040, 7.855, z_up_nosing.call(7.855) + guard_h - 0.040, 0.040, M_WOOD_DARK)
-add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', 7.008, 5.735, 6.540, z_ff2, z_ff2 + guard_h)
+add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', 7.008, 5.735, 6.430, z_ff2, z_ff2 + guard_h)
 add_box(se_st, 6.975, 5.735, 7.04, 5.775, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_Start_Anchor')
-add_box(se_st, 6.975, 6.510, 7.04, 6.548, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_End_Anchor')
+add_box(se_st, 6.975, 6.410, 7.04, outer_guard_north_wall_y, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_End_Anchor')
 sf_furn_grp = ents.add_group; sf_furn_grp.name = '08_2F_Interior_Furniture_by_Room'; sf_furn_grp.layer = L_2F_FURN; sffe_furn = sf_furn_grp.entities
 build_luxury_bedroom_suite(sffe_furn, 'Room_2F_Bedroom_2', 3.02, :east, 9.85, 2.05, 3.55, [7.88, 4.25, 9.85, 4.85], :south)
 bed2_ac = add_split_ac_unit(sffe_furn, 7.065, 2.94, 5.25, 90)
