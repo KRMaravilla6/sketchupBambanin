@@ -5,8 +5,7 @@ model.start_operation('Build Combined Minimal Elegant Exterior & Upgraded Interi
 begin
 root_ents = model.entities
 ['FURNISHING', 'EXTERIOR_REDESIGN_V7', 'House_10x10_Model', 'Mindoro_Breeze_Atrium_House', 'Mindoro_10x10_Tropical_House'].each do |gname|
-old = root_ents.grep(Sketchup::Group).find { |g| g.name == gname }
-old.erase! if old && !old.deleted?
+root_ents.grep(Sketchup::Group).select { |g| g.name == gname && !g.deleted? }.each(&:erase!)
 end
 root_ents.grep(Sketchup::ComponentInstance).to_a.each do |inst|
 inst.erase! if inst.definition.name =~ /Laura|Heather|Scale|Person|Chris|Sumele/i
@@ -988,6 +987,10 @@ add_box(de, fixed_coord - dt / 2.0 - 0.006, r1 + 0.14, fixed_coord + dt / 2.0 + 
 add_box(de, fixed_coord - 0.065, r2 - jt - 0.12, fixed_coord + 0.065, r2 - jt - 0.03, z1 + 0.98, z1 + 1.02, M_BRASS)
 end
 d_grp.set_attribute('Opening', 'recommended_swing', 'Bedroom 2 inward into bedroom, off the level 2F landing. Door hinge at east jamb; finish swing must be checked onsite.') if id == 'D_B2'
+if id == 'D3'
+d_grp.set_attribute('Opening', 'recommended_swing', 'Main entry opens inward toward the living area; west-jamb hinge, east-side handle. Keep the 950mm leaf sweep clear.')
+d_grp.set_attribute('Opening', 'swing_width_mm', 950)
+end
 d_grp
 end
 def build_monolithic_wall(shell_ents, fixtures_ents, id, x1, y1, x2, y2, t, z_base, z_top_start, z_top_end, openings)
@@ -1324,7 +1327,7 @@ gf_int_grp = gfe.add_group; gf_int_grp.name = 'GF_Rear_and_Interior_Walls'; gf_i
 gf_int_shell = gfie.add_group; gf_int_shell.name = 'GF_Interior_Wall_Shell'
 gf_int_ops = gfie.add_group; gf_int_ops.name = 'GF_Interior_Doors_Windows'
 gf_int_parts = [
-build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [4.90, 6.30], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
+build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [4.30, 5.70], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E6', 3.075, 8.0, 9.85, 8.0, 0.15, 0.0, 3.0, 3.0, [
 { id: 'W1', type: :window, r: [3.90, 5.40], z_sill: 0.945, z_head: 1.640, in_dir: -1, curtains: false },
 { id: 'KITCHEN_EXHAUST_VENT', type: :vent, r: [5.53, 5.88], z_sill: 2.41, z_head: 2.65 },
@@ -1611,12 +1614,25 @@ a = i * 120.0 * Math::PI / 180.0
 tapered_leg_at(le, "Side_Table_Leg_#{i + 1}", 4.08 + 0.14 * Math.cos(a), 3.30 + 0.14 * Math.sin(a), 0.028, 22, 32, 427, M_WOOD_DARK)
 end
 add_tabletop_plant(le, 4.08, 3.30, 0.479)
-add_box(le, 3.225, 2.55, 3.26, 4.45, 0.02, 2.85, M_WOOD_DARK)
-add_box(le, 3.26, 3.00, 3.30, 4.00, 0.55, 2.65, M_MARBLE_DRK)
-add_box(le, 3.26, 2.62, 3.68, 4.38, 0.18, 0.46, M_WOOD_DARK)
-add_box(le, 3.26, 2.61, 3.70, 4.39, 0.46, 0.49, M_MARBLE_WHT)
-add_box(le, 3.30, 3.08, 3.34, 3.94, 0.88, 1.52, M_METAL_BLK, 'OLED_TV')
-add_split_ac_unit(le, 3.260, 3.52, 2.56, 90)
+entry_swing_end_y = 2.0 + 0.95
+brown_tv_panel_y1 = 2.55
+brown_tv_panel_y2 = 4.15
+tv_center_y = (brown_tv_panel_y1 + brown_tv_panel_y2) * 0.5
+tv_y1 = tv_center_y - 0.430
+tv_y2 = tv_center_y + 0.430
+raise 'TV is not centered on the brown wall panel.' if (((tv_y1 + tv_y2) * 0.5) - tv_center_y).abs > 0.001
+entry_console_y1 = tv_center_y - 0.300
+entry_console_y2 = tv_center_y + 0.300
+entry_side_table_y1 = 3.30 - 0.235
+entry_clearances = [entry_console_y1, entry_side_table_y1].map { |y| y - entry_swing_end_y }
+raise 'Main entry door swing conflicts with the living-room furnishings.' if entry_clearances.min < 0.10
+tv_entry_x_clearance = 3.35 - 3.34
+raise 'TV overlaps the main entry doorway.' if tv_entry_x_clearance < 0.01
+add_box(le, 3.225, 2.55, 3.26, 4.15, 0.02, 2.85, M_WOOD_DARK)
+add_box(le, 3.26, entry_console_y1, 3.68, entry_console_y2, 0.18, 0.46, M_WOOD_DARK)
+add_box(le, 3.26, entry_console_y1, 3.70, entry_console_y2, 0.46, 0.49, M_MARBLE_WHT)
+add_box(le, 3.30, tv_y1, 3.34, tv_y2, 0.88, 1.52, M_METAL_BLK, 'OLED_TV')
+add_split_ac_unit(le, 3.260, tv_center_y, 2.56, 90)
 din_grp = gffe_furn.add_group; din_grp.name = 'Room_GF_Dining_and_Kitchen'; de = din_grp.entities
 add_box(de, 4.88, 5.05, 5.38, 5.55, 0.02, 0.05, M_BRASS)
 add_box(de, 4.96, 5.12, 5.30, 5.48, 0.05, 0.71, M_WOOD_DARK)
@@ -1635,33 +1651,101 @@ kitchen_grp = de.add_group; kitchen_grp.name = 'Kitchen_Optimized_Layout'; ke = 
 k_back = 7.925
 k_depth = 0.600
 k_front = k_back - k_depth
-fx1 = 3.225; fx2 = 3.805
-p1x1 = 3.805; p1x2 = 4.410
+fx1 = 3.225; fx2 = 3.825
+p1x1 = 3.825; p1x2 = 4.410
 sx1 = 4.410; sx2 = 4.890
 p2x1 = 4.890; p2x2 = 5.500
 hx1 = 5.500; hx2 = 5.980
 ex2 = 6.185
-kitchen_grp.set_attribute('Kitchen_Layout', 'guide', 'Arch Projects correct run: fridge, sink, hob')
-kitchen_grp.set_attribute('Kitchen_Layout', 'landing_fridge_to_sink_mm', ((sx1 - fx2) * 1000).round)
+fridge_back_x = 3.255
+fridge_front_x = 3.935
+fridge_y1 = 6.100
+fridge_y2 = 6.800
+fridge_swing = 0.700
+return_x1 = 3.225
+return_x2 = fx2 - 0.015
+return_y1 = fridge_y2 + 0.075
+window_w3_y2 = 5.700
+kitchen_grp.set_attribute('Kitchen_Layout', 'guide', 'West-wall refrigerator facing east; 600 x 1050mm L-shaped sink counter; aligned L-shaped upper cabinets')
+kitchen_grp.set_attribute('Kitchen_Layout', 'landing_fridge_to_sink_mm', ((sx1 - fridge_front_x - 0.030) * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'landing_sink_to_hob_mm', ((hx1 - sx2) * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'clearance_hob_to_end_mm', ((ex2 - hx2) * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'counter_depth_mm', (k_depth * 1000).round)
-ref_grp = ke.add_group; ref_grp.name = 'Kitchen_Refrigerator_Aligned_Left_End_Bay'; re_k = ref_grp.entities
-add_box(re_k, fx1, k_front - 0.035, fx1 + 0.040, k_back + 0.015, 0.02, 2.62, M_CHARCOAL_CAB)
-add_box(re_k, fx2 - 0.040, k_front - 0.035, fx2, k_back + 0.015, 0.02, 2.62, M_CHARCOAL_CAB)
-add_box(re_k, fx1 + 0.040, k_front - 0.025, fx2 - 0.040, k_back - 0.050, 0.04, 1.90, M_CHROME, 'Refrigerator_Main_Body_Repositioned')
-add_box(re_k, fx1 + 0.055, k_front - 0.070, fx1 + 0.335, k_front - 0.025, 0.84, 1.88, M_CHROME, 'Refrigerator_Fresh_Door_Left')
-add_box(re_k, fx1 + 0.355, k_front - 0.070, fx2 - 0.055, k_front - 0.025, 0.84, 1.88, M_CHROME, 'Refrigerator_Fresh_Door_Right')
-add_box(re_k, fx1 + 0.055, k_front - 0.070, fx2 - 0.055, k_front - 0.025, 0.08, 0.80, M_CHROME, 'Refrigerator_Freezer_Hinged_Door')
-add_box(re_k, fx1 + 0.305, k_front - 0.100, fx1 + 0.335, k_front - 0.070, 0.98, 1.66, M_METAL_BLK)
-add_box(re_k, fx2 - 0.085, k_front - 0.100, fx2 - 0.055, k_front - 0.070, 0.98, 1.66, M_METAL_BLK)
-add_box(re_k, fx1 + 0.315, k_front - 0.100, fx1 + 0.475, k_front - 0.070, 0.66, 0.72, M_METAL_BLK)
-add_box(re_k, fx1 + 0.055, k_front - 0.025, fx2 - 0.055, k_back - 0.050, 0.02, 0.04, M_METAL_BLK)
-add_box(re_k, fx1 + 0.040, k_front - 0.025, fx2 - 0.040, k_back, 1.94, 2.90, M_CHARCOAL_CAB)
-add_box(re_k, fx1 + 0.055, k_front - 0.070, fx1 + 0.335, k_front - 0.025, 1.99, 2.885, M_GREIGE_CAB)
-add_box(re_k, fx1 + 0.355, k_front - 0.070, fx2 - 0.055, k_front - 0.025, 1.99, 2.885, M_GREIGE_CAB)
-add_box(re_k, fx1 + 0.140, k_front - 0.100, fx1 + 0.230, k_front - 0.070, 2.02, 2.04, M_BRASS)
-add_box(re_k, fx1 + 0.445, k_front - 0.100, fx1 + 0.535, k_front - 0.070, 2.02, 2.04, M_BRASS)
+cabinet_door_hinge_x = (p1x1 + p1x2) * 0.5 - 0.015
+cabinet_door_clearance = cabinet_door_hinge_x - fridge_front_x
+fridge_window_clearance = fridge_y1 - window_w3_y2
+return_fridge_clearance = return_y1 - fridge_y2
+fridge_return_swing_clearance = fridge_front_x - return_x2
+raise 'Refrigerator blocks the adjacent cabinet door opening.' if cabinet_door_clearance < 0.050
+raise 'Refrigerator is too close to the shifted kitchen window.' if fridge_window_clearance < 0.300
+raise 'L-counter return conflicts with the refrigerator.' if return_fridge_clearance < 0.050
+raise 'L-counter return blocks the refrigerator door swing.' if fridge_return_swing_clearance < 0.050
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_back_wall', 'west')
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_front_direction', 'east')
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_dimensions_mm', '700 wide x 680 deep (710 with handle) x 1900 high')
+kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_hinge_side', 'east; opens away from refrigerator')
+kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_door_clearance_mm', (cabinet_door_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'window_W3_clearance_mm', (fridge_window_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_to_l_counter_clearance_mm', (return_fridge_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_swing_to_l_counter_clearance_mm', (fridge_return_swing_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_hinge_side', 'north')
+kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_door_swing_clearance_mm', (fridge_swing * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'l_counter_return_mm', "600 x #{((k_back - return_y1) * 1000).round}")
+kitchen_grp.set_attribute('Kitchen_Layout', 'countertop_height_mm', 905)
+kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_bottom_mm', 1685)
+kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_top_mm', 2900)
+ref_grp = ke.add_group; ref_grp.name = 'Kitchen_Refrigerator_West_Wall_Facing_East'; re_k = ref_grp.entities
+ref_grp.set_attribute('Orientation', 'back', 'west wall; 30mm ventilation gap')
+ref_grp.set_attribute('Orientation', 'front', 'east into kitchen')
+ref_grp.set_attribute('Door_Swing', 'hinge', 'north side; opens east and south')
+ref_grp.set_attribute('Door_Swing', 'clearance_mm', (fridge_swing * 1000).round)
+add_box(re_k, fridge_back_x, fridge_y1, fridge_front_x - 0.040, fridge_y2, 0.06, 1.90, M_CHROME, 'Refrigerator_700x680x1900_Body')
+add_box(re_k, fridge_front_x - 0.040, fridge_y1 + 0.020, fridge_front_x, fridge_y2 - 0.020, 0.08, 0.74, M_CHROME, 'Refrigerator_Freezer_Door')
+add_box(re_k, fridge_front_x - 0.040, fridge_y1 + 0.020, fridge_front_x, fridge_y2 - 0.020, 0.78, 1.88, M_CHROME, 'Refrigerator_Fresh_Food_Door')
+add_box(re_k, fridge_front_x, fridge_y1 + 0.050, fridge_front_x + 0.030, fridge_y1 + 0.080, 0.98, 1.58, M_METAL_BLK, 'Refrigerator_East_Facing_Handle')
+fridge_overhead_z1 = 2.00
+fridge_overhead_z2 = 2.90
+add_box(re_k, return_x1, fridge_y1, fx2, fridge_y2, fridge_overhead_z1, fridge_overhead_z2, M_CHARCOAL_CAB, 'Refrigerator_Overhead_Storage')
+add_box(re_k, fx2, fridge_y1 + 0.010, fx2 + 0.025, fridge_y2 - 0.010, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door')
+fridge_swing_group = ke.add_group
+fridge_swing_group.name = 'Refrigerator_Door_Swing_700mm_Clearance'
+swing_points = [Geom::Point3d.new(fridge_front_x.m, fridge_y2.m, 0.025.m)]
+(-90..0).step(10) do |degree|
+angle = degree * Math::PI / 180.0
+swing_points << Geom::Point3d.new((fridge_front_x + fridge_swing * Math.cos(angle)).m, (fridge_y2 + fridge_swing * Math.sin(angle)).m, 0.025.m)
+end
+swing_points << Geom::Point3d.new(fridge_front_x.m, fridge_y2.m, 0.025.m)
+fridge_swing_group.entities.add_edges(*swing_points).each { |edge| edge.material = M_BRASS }
+fridge_swing_group.set_attribute('Door_Swing', 'description', '700mm east-opening door sweep; adjacent cabinet door and L-counter remain clear')
+add_box(ke, return_x1 + 0.020, return_y1 + 0.040, return_x2 - 0.020, k_back - 0.040, 0.10, 0.86, M_CHARCOAL_CAB, 'L_Counter_West_Return_Base_Cabinet')
+add_box(ke, return_x1 + 0.040, return_y1 + 0.040, return_x2 - 0.040, k_back - 0.040, 0.02, 0.10, M_METAL_BLK, 'L_Counter_West_Return_Toe_Kick')
+return_mid_y = (return_y1 + k_back) * 0.5
+add_box(ke, return_x2 - 0.020, return_y1 + 0.040, return_x2, return_mid_y - 0.020, 0.14, 0.70, M_CHARCOAL_CAB, 'L_Counter_Return_East_Facing_Door_1')
+add_box(ke, return_x2 - 0.020, return_mid_y + 0.020, return_x2, k_back - 0.040, 0.14, 0.70, M_CHARCOAL_CAB, 'L_Counter_Return_East_Facing_Door_2')
+add_box(ke, return_x2 - 0.005, return_y1 + 0.235, return_x2 + 0.005, return_y1 + 0.285, 0.38, 0.42, M_BRASS, 'L_Counter_Return_Handle_1')
+add_box(ke, return_x2 - 0.005, return_mid_y + 0.125, return_x2 + 0.005, return_mid_y + 0.175, 0.38, 0.42, M_BRASS, 'L_Counter_Return_Handle_2')
+add_box(ke, return_x1, return_y1, return_x2, k_back, 0.86, 0.905, M_KITCHEN_TOP, 'L_Counter_West_Return_600x1050')
+8.times do |drain_groove|
+groove_y = return_y1 + 0.115 + drain_groove * 0.042
+add_box(ke, return_x1 + 0.125, groove_y, return_x2 - 0.125, groove_y + 0.008, 0.906, 0.911, M_CHROME, "L_Return_Sink_Drainboard_Groove_#{drain_groove + 1}")
+end
+add_box(ke, return_x1, return_y1, return_x1 + 0.020, k_back, 0.905, 1.48, M_SUBWAY_TILE, 'L_Counter_West_Wall_Backsplash')
+upper_return_end_y = k_back - 0.405
+upper_corner_start_y = upper_return_end_y
+upper_return_start_y = fridge_y2
+upper_return_mid_y = (upper_return_start_y + upper_return_end_y) * 0.5
+upper_fridge_joint_width = fx2 - return_x1
+upper_fridge_joint_height = [fridge_overhead_z2, 2.90].min - [fridge_overhead_z1, 1.685].max
+raise 'Over-fridge cabinet does not meet the L-shaped upper return.' if (upper_return_start_y - fridge_y2).abs > 0.001 || upper_fridge_joint_width <= 0.0 || upper_fridge_joint_height <= 0.0
+kitchen_grp.set_attribute('Kitchen_Layout', 'over_fridge_upper_cabinet_joint', "flush-front L joint with shared #{(upper_fridge_joint_width * 1000).round}mm width and #{(upper_fridge_joint_height * 1000).round}mm height")
+add_box(ke, return_x1, upper_return_start_y, fx2, upper_return_end_y, 1.685, 2.90, M_CHARCOAL_CAB, 'L_Upper_West_Return_Cabinet')
+add_box(ke, fx2, upper_return_start_y + 0.020, fx2 + 0.025, upper_return_mid_y - 0.020, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_West_Return_Door_1')
+add_box(ke, fx2, upper_return_mid_y + 0.020, fx2 + 0.025, upper_return_end_y - 0.050, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_West_Return_Door_2')
+add_box(ke, fx2 + 0.025, upper_return_start_y + 0.135, fx2 + 0.050, upper_return_start_y + 0.185, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_1')
+add_box(ke, fx2 + 0.025, upper_return_mid_y + 0.100, fx2 + 0.050, upper_return_mid_y + 0.150, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_2')
+add_box(ke, return_x1, upper_corner_start_y, fx2, k_back, 1.685, 2.90, M_CHARCOAL_CAB, 'L_Upper_Corner_Cabinet')
+add_box(ke, return_x1 + 0.020, upper_corner_start_y - 0.035, return_x1 + 0.285, upper_corner_start_y - 0.010, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_Corner_Door_1')
+add_box(ke, return_x1 + 0.315, upper_corner_start_y - 0.035, fx2 - 0.025, upper_corner_start_y - 0.010, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_Corner_Door_2')
 add_box(ke, fx2, k_front + 0.015, ex2, k_back, 0.02, 0.10, M_METAL_BLK)
 add_box(ke, fx2, k_front, p2x2, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
 add_box(ke, hx2, k_front, ex2, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
@@ -2315,7 +2399,7 @@ puts '- Exterior: Minimal Elegant V6 Architecture, Gardens, Charcoal Roof & Blac
 puts '- Floors: Pietrasanta 35x35 in Bath 1, Aston Nature 47x47 in Bath 2,'
 puts '  SPC light-oak planks in all bedrooms, Porcelanato 60x60 on GF and 2F hall.'
 puts '  No checkerboard placeholder tiles. All windows are operable (slide/awning).'
-puts '- Kitchen: fridge | >600mm | sink | >600mm | hob | >200mm, 600mm-deep counters.'
+puts '- Kitchen: W3 shifted 600mm toward the entrance; east-facing west-wall refrigerator; 600 x 1050mm L sink counter and aligned L uppers.'
 puts '- Interior: bathroom render scenes, fluted vanity, rain shower, dining pendant.'
 puts '===================================================================='
 rescue StandardError => err
