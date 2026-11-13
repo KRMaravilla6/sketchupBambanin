@@ -29,8 +29,14 @@ L_2F_EXT = layers['08_2F_Exterior_Front'] || layers.add('08_2F_Exterior_Front')
 L_2F_WALLS = layers['09_2F_Walls_and_Shell'] || layers.add('09_2F_Walls_and_Shell')
 L_2F_FURN = layers['10_2F_Interior_Furniture'] || layers.add('10_2F_Interior_Furniture')
 L_ROOF = layers['11_Roof_Assembly'] || layers.add('11_Roof_Assembly')
+L_OPENINGS_CLOSED = layers['12_Opening_Leaves_Closed'] || layers.add('12_Opening_Leaves_Closed')
+L_OPENINGS_MAX = layers['13_Opening_Leaves_Max_Open'] || layers.add('13_Opening_Leaves_Max_Open')
+L_STONE = layers['Stone'] || layers.add('Stone')
+$door_opening_ids = []
+$max_open_door_ids = []
 [L_SUV, L_SITE, L_FENCE, L_PERIM, L_GF_EXT, L_GF_WALLS, L_GF_FURN,
-L_2F_SLAB, L_2F_EXT, L_2F_WALLS, L_2F_FURN, L_ROOF].each { |l| l.visible = true }
+L_2F_SLAB, L_2F_EXT, L_2F_WALLS, L_2F_FURN, L_ROOF, L_OPENINGS_CLOSED, L_STONE].each { |l| l.visible = true }
+L_OPENINGS_MAX.visible = true
 def toggle_suv
 m = Sketchup.active_model
 suv_layer = m.layers['00_HIDE_UNHIDE_Black_SUV']
@@ -106,6 +112,32 @@ end
 bmp_quartz = write_bmp('Mindoro_Warm_Alabaster_Quartz.bmp', 128) do |x, y, size|
 s = (fbm_noise(x.to_f / size, y.to_f / size) - 0.5) * 4.5
 [246.0 + s, 242.0 + s, 234.0 + s]
+end
+patagonia_pixel = lambda do |x, y, size|
+  u = x.to_f / size
+  v = y.to_f / size
+  n = fbm_noise(u, v)
+  warp = (n - 0.5) * 0.20
+  vein_a = (Math.sin((u * 1.15 + v * 0.48 + warp) * Math::PI * 5.0)).abs
+  vein_b = (Math.sin((u * 0.74 - v * 0.82 + warp * 0.6) * Math::PI * 4.0)).abs
+  gold = Math.exp(-((vein_a - 0.13) ** 2) * 170.0)
+  taupe = Math.exp(-((vein_b - 0.10) ** 2) * 220.0)
+  crystal = ((x * 37 + y * 61) % 97 < 3) ? 1.0 : 0.0
+  base = [240.0 + (n - 0.5) * 8.0, 236.0 + (n - 0.5) * 8.0, 226.0 + (n - 0.5) * 8.0]
+  rgb = base.each_with_index.map do |channel, index|
+    channel * (1.0 - [gold * 0.78 + taupe * 0.35, 0.82].min) +
+      [201.0, 162.0, 84.0][index] * gold * 0.70 +
+      [126.0, 118.0, 108.0][index] * taupe * 0.35 +
+      (255.0 - channel) * crystal * 0.65
+  end
+  rgb
+end
+bmp_patagonia = write_bmp('Patagonia_Stone_Texture_Placeholder.bmp', 256) { |x, y, size| patagonia_pixel.call(x, y, size) }
+bmp_patagonia_mirror = write_bmp('Patagonia_Stone_Bookmatch_Mirror_Placeholder.bmp', 256) { |x, y, size| patagonia_pixel.call(x, size - 1 - y, size) }
+bmp_fluted_wood = write_bmp('Fluted_Wood_Texture_Placeholder.bmp', 256) do |x, y, size|
+  grain = Math.sin(x * 0.11 + Math.sin(y * 0.025) * 1.4) * 5.0
+  pore = ((x % 18) < 2) ? -6.0 : 0.0
+  [128.0 + grain + pore, 118.0 + grain * 0.88 + pore, 112.0 + grain * 0.72 + pore]
 end
 bmp_subway = write_bmp('Mindoro_Warm_Sand_Subway.bmp', 192) do |x, y, size|
 row_h = size / 6; col_w = size / 3
@@ -209,6 +241,33 @@ M_TILE_GARAGE = get_mat(mats, 'Granite_Paver_Tile', 195, 191, 183)
 M_GROUT_DARK = get_mat(mats, 'Tile_Grout_Charcoal', 215, 211, 204)
 M_MARBLE_WHT = get_mat(mats, 'Calacatta_Marble', 246, 242, 233, 1.0, bmp_quartz, 1800.0, 1800.0)
 M_MARBLE_DRK = get_mat(mats, 'Nero_Marquina', 42, 44, 47)
+M_PATAGONIA_STONE = get_mat(mats, 'Patagonia_Stone', 240, 236, 226, 1.0, bmp_patagonia, 1800.0, 1200.0)
+M_PATAGONIA_STONE_MIRROR = get_mat(mats, 'Patagonia_Stone_Bookmatch_Mirror', 240, 236, 226, 1.0, bmp_patagonia_mirror, 1800.0, 1200.0)
+M_PATAGONIA_STONE.set_attribute('Stone', 'finish', 'polished high-gloss')
+M_PATAGONIA_STONE.set_attribute('Stone', 'reflectivity', 0.45)
+M_PATAGONIA_STONE.set_attribute('Stone', 'backlit_translucency', 'slight; enable translucency/SSS in the renderer')
+# Enable emission for these LED materials in V-Ray, Enscape or Twinmotion when rendering.
+M_LED_WARM_WHITE = get_mat(mats, 'LED_WarmWhite', 255, 236, 200)
+M_LED_WARM = get_mat(mats, 'LED_Warm', 255, 200, 90)
+M_TV_DENIM = get_mat(mats, 'Denim_Blue_Cabinetry', 70, 105, 140)
+M_TV_FLUTED = get_mat(mats, 'Taupe_Grey_Fluted_Panel', 128, 118, 112, 1.0, bmp_fluted_wood, 300.0, 2400.0)
+M_TV_GOLD = get_mat(mats, 'Brushed_Gold_TV_Accent', 212, 175, 100)
+M_TV_CONSOLE_TOP = get_mat(mats, 'Warm_Grey_Console_Top', 120, 115, 115)
+M_TV_TAUPE = get_mat(mats, 'TV_Wall_Taupe_Grey', 128, 118, 112)
+M_TV_FLOOR_MARBLE = get_mat(mats, 'Cream_Marble_Floor_1200', 246, 242, 233, 1.0, bmp_marble, 1200.0, 1200.0)
+M_TV_STONE_BACK = M_PATAGONIA_STONE
+M_TV_DARK_BLUE = get_mat(mats, 'TV_Tower_Dark_Grey_Blue', 55, 66, 78)
+M_TV_TRAVERTINE = get_mat(mats, 'TV_Coffee_Table_Travertine', 224, 216, 200, 1.0, bmp_quartz, 1200.0, 1200.0)
+M_TV_SILVER = get_mat(mats, 'TV_Coffee_Table_Silver_Pot', 185, 190, 194)
+M_TV_WHITE = get_mat(mats, 'TV_Wall_Matte_White', 247, 247, 244)
+M_TV_SCREEN = get_mat(mats, 'TV_Glossy_Black_Screen', 8, 9, 12, 0.98)
+M_TV_CURTAIN = get_mat(mats, 'TV_Dark_Grey_Curtain', 58, 61, 66, 0.72)
+TV_WALL_CONFIG = {
+  WALL_W: 1150.0, WALL_H: 2830.0, TV_W: 1450.0, TV_H: 830.0,
+  STONE_BORDER: 150.0, CONSOLE_H: 450.0, CONSOLE_FLOAT: 120.0,
+  CEILING_COVE_H: 120.0, MARGIN: 50.0, SHELF_DEPTH: 180.0,
+  TOWER_BACK: :stone
+}.freeze
 M_KITCHEN_TOP = get_mat(mats, 'Kitchen_Charcoal_Top', 42, 44, 47)
 M_SUBWAY_TILE = get_mat(mats, 'Kitchen_Subway_Tile', 218, 208, 194, 1.0, bmp_subway, 900.0, 600.0)
 M_CHARCOAL_CAB = get_mat(mats, 'Kitchen_Charcoal_Cab', 44, 46, 49)
@@ -306,6 +365,57 @@ end
 grp.entities.grep(Sketchup::Face).each { |f| face_mat(f, mat) }
 grp.material = mat if mat
 grp
+end
+def add_beveled_box(parent_ents, name, x1, y1, x2, y2, z1, z2, bevel, mat)
+  b = [bevel.to_f, [(x2 - x1), (y2 - y1), (z2 - z1)].min * 0.2].min
+  raise "Invalid bevel size for #{name}." if b <= 0.0
+  group = parent_ents.add_group
+  group.name = name
+  faces = [
+    [[x1, y1 + b, z1 + b], [x1, y2 - b, z1 + b], [x1, y2 - b, z2 - b], [x1, y1 + b, z2 - b]],
+    [[x2, y1 + b, z1 + b], [x2, y2 - b, z1 + b], [x2, y2 - b, z2 - b], [x2, y1 + b, z2 - b]],
+    [[x1 + b, y1, z1 + b], [x2 - b, y1, z1 + b], [x2 - b, y1, z2 - b], [x1 + b, y1, z2 - b]],
+    [[x1 + b, y2, z1 + b], [x2 - b, y2, z1 + b], [x2 - b, y2, z2 - b], [x1 + b, y2, z2 - b]],
+    [[x1 + b, y1 + b, z1], [x2 - b, y1 + b, z1], [x2 - b, y2 - b, z1], [x1 + b, y2 - b, z1]],
+    [[x1 + b, y1 + b, z2], [x2 - b, y1 + b, z2], [x2 - b, y2 - b, z2], [x1 + b, y2 - b, z2]]
+  ]
+  [-1, 1].each do |ys|
+    [-1, 1].each do |zs|
+      yb = ys < 0 ? y1 : y2; yi = yb - ys * b
+      zb = zs < 0 ? z1 : z2; zi = zb - zs * b
+      faces << [[x1 + b, yb, zi], [x2 - b, yb, zi], [x2 - b, yi, zb], [x1 + b, yi, zb]]
+    end
+  end
+  [-1, 1].each do |xs|
+    [-1, 1].each do |zs|
+      xb = xs < 0 ? x1 : x2; xi = xb - xs * b
+      zb = zs < 0 ? z1 : z2; zi = zb - zs * b
+      faces << [[xb, y1 + b, zi], [xb, y2 - b, zi], [xi, y2 - b, zb], [xi, y1 + b, zb]]
+    end
+  end
+  [-1, 1].each do |xs|
+    [-1, 1].each do |ys|
+      xb = xs < 0 ? x1 : x2; xi = xb - xs * b
+      yb = ys < 0 ? y1 : y2; yi = yb - ys * b
+      faces << [[xb, yi, z1 + b], [xb, yi, z2 - b], [xi, yb, z2 - b], [xi, yb, z1 + b]]
+    end
+  end
+  [-1, 1].each do |xs|
+    [-1, 1].each do |ys|
+      [-1, 1].each do |zs|
+        xb = xs < 0 ? x1 : x2; xi = xb - xs * b
+        yb = ys < 0 ? y1 : y2; yi = yb - ys * b
+        zb = zs < 0 ? z1 : z2; zi = zb - zs * b
+        faces << [[xb, yi, zi], [xi, yb, zi], [xi, yi, zb]]
+      end
+    end
+  end
+  faces.each do |points|
+    face = group.entities.add_face(points.map { |x, y, z| Geom::Point3d.new(x.m, y.m, z.m) })
+    face_mat(face, mat) if face
+  end
+  group.material = mat if mat
+  group
 end
 def rounded_rect_pts(w, d, r, z = 0.0, segs = 6)
 w = w.to_f; d = d.to_f
@@ -748,13 +858,23 @@ add_box(we, r1 + ft, fixed_coord - 0.008, r2 - ft, fixed_coord + 0.008, z1 + 0.0
   a = r1 + i * span + ft * 0.5
   b = r1 + (i + 1) * span - ft * 0.5
   offset = i.even? ? -track_gap * 0.5 : track_gap * 0.5
-  add_box(we, a, fixed_coord - st + offset, b, fixed_coord + st + offset, z1 + ft, z1 + ft + st, M_METAL_BLK)
-  add_box(we, a, fixed_coord - st + offset, b, fixed_coord + st + offset, z2 - ft - st, z2 - ft, M_METAL_BLK)
-  add_box(we, a, fixed_coord - st + offset, a + st, fixed_coord + st + offset, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
-  add_box(we, b - st, fixed_coord - st + offset, b, fixed_coord + st + offset, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
-  add_box(we, a + st, fixed_coord - 0.005 + offset, b - st, fixed_coord + 0.005 + offset, z1 + ft + st, z2 - ft - st, M_GLASS)
+  panel = we.add_group
+  panel.name = "#{id}_Sliding_Panel_#{i + 1}_Closed"
+  pe = panel.entities
+  add_box(pe, a, fixed_coord - st + offset, b, fixed_coord + st + offset, z1 + ft, z1 + ft + st, M_METAL_BLK)
+  add_box(pe, a, fixed_coord - st + offset, b, fixed_coord + st + offset, z2 - ft - st, z2 - ft, M_METAL_BLK)
+  add_box(pe, a, fixed_coord - st + offset, a + st, fixed_coord + st + offset, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
+  add_box(pe, b - st, fixed_coord - st + offset, b, fixed_coord + st + offset, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
+  add_box(pe, a + st, fixed_coord - 0.005 + offset, b - st, fixed_coord + 0.005 + offset, z1 + ft + st, z2 - ft - st, M_GLASS)
   hx = (a + b) * 0.5
-  add_box(we, hx - 0.026, fixed_coord - 0.012 + offset, hx + 0.026, fixed_coord + 0.012 + offset, (z1 + z2) * 0.5 - 0.055, (z1 + z2) * 0.5 + 0.055, M_CHROME)
+  add_box(pe, hx - 0.026, fixed_coord - 0.012 + offset, hx + 0.026, fixed_coord + 0.012 + offset, (z1 + z2) * 0.5 - 0.055, (z1 + z2) * 0.5 + 0.055, M_CHROME)
+  panel.layer = L_OPENINGS_CLOSED
+  open_panel = panel.copy
+  open_panel.name = "#{id}_Sliding_Panel_#{i + 1}_Max_Open"
+  if i == 1
+    open_panel.transform!(Geom::Transformation.translation(Geom::Vector3d.new((-span).m, 0, 0)))
+  end
+  open_panel.layer = L_OPENINGS_MAX
 end
 else
 xa = fixed_coord - fd / 2.0
@@ -768,13 +888,23 @@ add_box(we, fixed_coord - 0.008, r1 + ft, fixed_coord + 0.008, r2 - ft, z1 + 0.0
   a = r1 + i * span + ft * 0.5
   b = r1 + (i + 1) * span - ft * 0.5
   offset = i.even? ? -track_gap * 0.5 : track_gap * 0.5
-  add_box(we, fixed_coord - st + offset, a, fixed_coord + st + offset, b, z1 + ft, z1 + ft + st, M_METAL_BLK)
-  add_box(we, fixed_coord - st + offset, a, fixed_coord + st + offset, b, z2 - ft - st, z2 - ft, M_METAL_BLK)
-  add_box(we, fixed_coord - st + offset, a, fixed_coord + st + offset, a + st, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
-  add_box(we, fixed_coord - st + offset, b - st, fixed_coord + st + offset, b, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
-  add_box(we, fixed_coord - 0.005 + offset, a + st, fixed_coord + 0.005 + offset, b - st, z1 + ft + st, z2 - ft - st, M_GLASS)
+  panel = we.add_group
+  panel.name = "#{id}_Sliding_Panel_#{i + 1}_Closed"
+  pe = panel.entities
+  add_box(pe, fixed_coord - st + offset, a, fixed_coord + st + offset, b, z1 + ft, z1 + ft + st, M_METAL_BLK)
+  add_box(pe, fixed_coord - st + offset, a, fixed_coord + st + offset, b, z2 - ft - st, z2 - ft, M_METAL_BLK)
+  add_box(pe, fixed_coord - st + offset, a, fixed_coord + st + offset, a + st, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
+  add_box(pe, fixed_coord - st + offset, b - st, fixed_coord + st + offset, b, z1 + ft + st, z2 - ft - st, M_METAL_BLK)
+  add_box(pe, fixed_coord - 0.005 + offset, a + st, fixed_coord + 0.005 + offset, b - st, z1 + ft + st, z2 - ft - st, M_GLASS)
   hz = (z1 + z2) * 0.5
-  add_box(we, fixed_coord - 0.012 + offset, (a + b) * 0.5 - 0.026, fixed_coord + 0.012 + offset, (a + b) * 0.5 + 0.026, hz - 0.055, hz + 0.055, M_CHROME)
+  add_box(pe, fixed_coord - 0.012 + offset, (a + b) * 0.5 - 0.026, fixed_coord + 0.012 + offset, (a + b) * 0.5 + 0.026, hz - 0.055, hz + 0.055, M_CHROME)
+  panel.layer = L_OPENINGS_CLOSED
+  open_panel = panel.copy
+  open_panel.name = "#{id}_Sliding_Panel_#{i + 1}_Max_Open"
+  if i == 1
+    open_panel.transform!(Geom::Transformation.translation(Geom::Vector3d.new(0, (-span).m, 0)))
+  end
+  open_panel.layer = L_OPENINGS_MAX
 end
 end
 w_grp.set_attribute('Opening', 'type', 'sliding window')
@@ -829,10 +959,15 @@ if horizontal
       add_box(e, left + st, fixed_coord - 0.005, right - st, fixed_coord + 0.005, lower + st, upper - st, glass_mat)
       center = (left + right) * 0.5
       add_box(e, center - 0.027, fixed_coord - 0.012, center + 0.027, fixed_coord + 0.016, lower + 0.036, lower + 0.098, M_CHROME)
+      closed_sash = sash.copy
+      closed_sash.name = "#{id}_Awning_Row_#{row + 1}_Panel_#{col + 1}_Closed"
+      closed_sash.layer = L_OPENINGS_CLOSED
       hinge = Geom::Point3d.new(left.m, fixed_coord.m, upper.m)
       sash.transform!(Geom::Transformation.rotation(hinge, X_AXIS, (-interior_dir * 18.0).degrees))
+      sash.layer = L_OPENINGS_MAX
       sash.set_attribute('Opening', 'type', 'top-hinged awning')
       sash.set_attribute('Opening', 'display_angle_degrees', 18.0)
+      sash.set_attribute('Opening', 'maximum_open_angle_degrees', 18.0)
     end
   end
 else
@@ -866,10 +1001,15 @@ else
       add_box(e, fixed_coord - 0.005, left + st, fixed_coord + 0.005, right - st, lower + st, upper - st, glass_mat)
       center = (left + right) * 0.5
       add_box(e, fixed_coord - 0.016, center - 0.027, fixed_coord + 0.012, center + 0.027, lower + 0.036, lower + 0.098, M_CHROME)
+      closed_sash = sash.copy
+      closed_sash.name = "#{id}_Awning_Row_#{row + 1}_Panel_#{col + 1}_Closed"
+      closed_sash.layer = L_OPENINGS_CLOSED
       hinge = Geom::Point3d.new(fixed_coord.m, left.m, upper.m)
       sash.transform!(Geom::Transformation.rotation(hinge, Y_AXIS, (interior_dir * 18.0).degrees))
+      sash.layer = L_OPENINGS_MAX
       sash.set_attribute('Opening', 'type', 'top-hinged awning')
       sash.set_attribute('Opening', 'display_angle_degrees', 18.0)
+      sash.set_attribute('Opening', 'maximum_open_angle_degrees', 18.0)
     end
   end
 end
@@ -926,16 +1066,20 @@ w_grp
 end
 def add_door_unit(parent_ents, id, horizontal, fixed_coord, r1, r2, z1, z2, wall_t)
 d_grp = parent_ents.add_group; d_grp.name = "Door_#{id}"; de = d_grp.entities
+$door_opening_ids << id
 jt = 0.045; jd = wall_t + 0.02; dt = 0.045
+leaf_group = de.add_group
+leaf_group.name = "Door_#{id}_Closed_Leaf"
+leaf_ents = leaf_group.entities
 if horizontal
 y1 = fixed_coord - jd / 2.0; y2 = fixed_coord + jd / 2.0
 add_box(de, r1, y1, r1 + jt, y2, z1, z2, M_METAL_BLK)
 add_box(de, r2 - jt, y1, r2, y2, z1, z2, M_METAL_BLK)
 add_box(de, r1 + jt, y1, r2 - jt, y2, z2 - jt, z2, M_METAL_BLK)
-add_box(de, r1 + jt, fixed_coord - dt / 2.0, r2 - jt, fixed_coord + dt / 2.0, z1, z2 - jt, M_WOOD_DOOR)
-add_box(de, r1 + 0.14, fixed_coord - dt / 2.0 - 0.006, r2 - 0.14, fixed_coord + dt / 2.0 + 0.006, z1 + 0.18, z1 + 0.95, M_WOOD_OAK)
-add_box(de, r1 + 0.14, fixed_coord - dt / 2.0 - 0.006, r2 - 0.14, fixed_coord + dt / 2.0 + 0.006, z1 + 1.12, z2 - 0.18, M_WOOD_OAK)
-add_box(de, r2 - jt - 0.12, fixed_coord - 0.065, r2 - jt - 0.03, fixed_coord + 0.065, z1 + 0.98, z1 + 1.02, M_BRASS)
+add_box(leaf_ents, r1 + jt, fixed_coord - dt / 2.0, r2 - jt, fixed_coord + dt / 2.0, z1, z2 - jt, M_WOOD_DOOR)
+add_box(leaf_ents, r1 + 0.14, fixed_coord - dt / 2.0 - 0.006, r2 - 0.14, fixed_coord + dt / 2.0 + 0.006, z1 + 0.18, z1 + 0.95, M_WOOD_OAK)
+add_box(leaf_ents, r1 + 0.14, fixed_coord - dt / 2.0 - 0.006, r2 - 0.14, fixed_coord + dt / 2.0 + 0.006, z1 + 1.12, z2 - 0.18, M_WOOD_OAK)
+add_box(leaf_ents, r2 - jt - 0.12, fixed_coord - 0.065, r2 - jt - 0.03, fixed_coord + 0.065, z1 + 0.98, z1 + 1.02, M_BRASS)
 else
 x1 = fixed_coord - jd / 2.0; x2 = fixed_coord + jd / 2.0
 add_box(de, x1, r1, x2, r1 + jt, z1, z2, M_METAL_BLK)
@@ -945,6 +1089,28 @@ add_box(de, fixed_coord - dt / 2.0, r1 + jt, fixed_coord + dt / 2.0, r2 - jt, z1
 add_box(de, fixed_coord - dt / 2.0 - 0.006, r1 + 0.14, fixed_coord + dt / 2.0 + 0.006, r2 - 0.14, z1 + 0.18, z1 + 0.95, M_WOOD_OAK)
 add_box(de, fixed_coord - dt / 2.0 - 0.006, r1 + 0.14, fixed_coord + dt / 2.0 + 0.006, r2 - 0.14, z1 + 1.12, z2 - 0.18, M_WOOD_OAK)
 add_box(de, fixed_coord - 0.065, r2 - jt - 0.12, fixed_coord + 0.065, r2 - jt - 0.03, z1 + 0.98, z1 + 1.02, M_BRASS)
+end
+hinge_side = id == 'D_B2' ? :high : :low
+hinge_position = hinge_side == :high ? r2 - jt : r1 + jt
+hinge = horizontal ? Geom::Point3d.new(hinge_position.m, fixed_coord.m, z1.m) : Geom::Point3d.new(fixed_coord.m, hinge_position.m, z1.m)
+open_angle = horizontal ? (id == 'D3' || id == 'D_B2' ? 90.0 : -90.0) : (id == 'D_B3' ? 90.0 : -90.0)
+open_leaf_group = leaf_group.copy
+open_leaf_group.name = "Door_#{id}_Max_Open_Leaf"
+open_leaf_group.transform!(Geom::Transformation.rotation(hinge, Z_AXIS, open_angle.degrees))
+open_leaf_group.layer = L_OPENINGS_MAX
+$max_open_door_ids << id
+open_leaf_group.set_attribute('Opening', 'display_angle_degrees', 90)
+open_leaf_group.set_attribute('Opening', 'maximum_open_angle_degrees', 90)
+open_leaf_group.set_attribute('Opening', 'hinge', hinge_side == :high ? 'high jamb' : 'low jamb')
+open_leaf_group.set_attribute('Opening', 'included_in_open_all_scene', true)
+if id == 'D3'
+leaf_group.set_attribute('Opening', 'hinge', 'west jamb')
+end
+leaf_group.layer = L_OPENINGS_CLOSED
+if ['D4', 'D_TB2'].include?(id)
+  d_grp.set_attribute('Opening', 'room_type', 'bathroom')
+  d_grp.set_attribute('Opening', 'included_in_open_all_scene', true)
+  open_leaf_group.set_attribute('Opening', 'room_type', 'bathroom')
 end
 d_grp.set_attribute('Opening', 'recommended_swing', 'Bedroom 2 inward into bedroom, off the level 2F landing. Door hinge at east jamb; finish swing must be checked onsite.') if id == 'D_B2'
 if id == 'D3'
@@ -1124,7 +1290,7 @@ base_grp.name = '01_Site_and_Realistic_Gardens'
 base_grp.layer = L_SITE
 be = base_grp.entities
 add_box(be, 0.0, 0.0, 10.0, 10.0, -0.15, 0.0, M_SLAB, 'Lot_Slab')
-add_luxury_tiled_floor(be, 'GF_Living_Dining_Kitchen_Porcelanato_60x60', 3.225, 2.075, 6.95, 7.925, 0.0, 0.02, 0.60, 0.60, M_MARBLE_ICE, M_MARBLE_ICE, M_GROUT_PLAT)
+add_luxury_tiled_floor(be, 'GF_Living_Dining_Kitchen_Cream_Marble_1200', 3.225, 2.075, 6.95, 7.925, 0.0, 0.02, 1.20, 1.20, M_TV_FLOOR_MARBLE, M_TV_FLOOR_MARBLE, M_GROUT_PLAT)
 add_luxury_plank_floor(be, 'GF_Bedroom1_SPC_Light_Oak_Planks', 7.05, 1.575, 9.85, 4.85, 0.0, 0.02, 0.18, 1.22, M_SPC_OAK, M_SPC_GROUT)
 add_luxury_tiled_floor(be, 'GF_TB1_Pietrasanta_Light_Grey_35x35', 7.05, 6.55, 9.85, 7.925, 0.0, 0.02, 0.35, 0.35, M_TILE_BATH1, M_TILE_BATH1, M_GROUT_PLAT)
 add_luxury_tiled_floor(be, 'GF_Stairwell_Porcelanato_60x60', 6.95, 4.85, 9.85, 6.55, 0.0, 0.02, 0.60, 0.60, M_MARBLE_ICE, M_MARBLE_ICE, M_GROUT_PLAT)
@@ -1538,6 +1704,54 @@ else
 add_box(be, wx1 + 0.04, wy1 - 0.02, wx2 - 0.04, wy1, z_fl + 0.08, z_fl + 2.32, M_WOOD_OAK)
 end
 end
+def add_bedroom_workstation(parent_ents, name, desk_bounds, chair_bounds, z_floor, chair_facing)
+work_grp = parent_ents.add_group
+work_grp.name = name
+we = work_grp.entities
+dx1, dy1, dx2, dy2 = desk_bounds
+cx1, cy1, cx2, cy2 = chair_bounds
+top_z = z_floor + 0.75
+add_box(we, dx1, dy1, dx2, dy2, top_z, top_z + 0.035, M_WOOD_OAK, 'Work_Desk_Top')
+add_box(we, dx1 + 0.025, dy1 + 0.025, dx2 - 0.025, dy2 - 0.025, top_z - 0.10, top_z - 0.075, M_WOOD_DARK, 'Work_Desk_Apron')
+leg_size = 0.035
+[[dx1 + 0.025, dy1 + 0.025], [dx2 - 0.025 - leg_size, dy1 + 0.025],
+ [dx1 + 0.025, dy2 - 0.025 - leg_size], [dx2 - 0.025 - leg_size, dy2 - 0.025 - leg_size]].each_with_index do |(lx, ly), index|
+  add_box(we, lx, ly, lx + leg_size, ly + leg_size, z_floor + 0.05, top_z, M_METAL_BLK, "Work_Desk_Leg_#{index + 1}")
+end
+if chair_facing == :east
+  laptop_x1 = dx1 + 0.06
+  laptop_x2 = laptop_x1 + 0.22
+  laptop_y1 = dy1 + 0.14
+  laptop_y2 = laptop_y1 + 0.30
+  add_box(we, laptop_x1, laptop_y1, laptop_x2, laptop_y2, top_z + 0.035, top_z + 0.045, M_METAL_BLK, 'Work_Laptop_Base')
+  add_box(we, laptop_x2 - 0.01, laptop_y1, laptop_x2, laptop_y2, top_z + 0.045, top_z + 0.22, M_METAL_BLK, 'Work_Laptop_Screen_Frame')
+  add_box(we, laptop_x2 - 0.008, laptop_y1 + 0.018, laptop_x2 - 0.002, laptop_y2 - 0.018, top_z + 0.065, top_z + 0.20, M_GLASS, 'Work_Laptop_Display')
+else
+  laptop_x1 = dx1 + 0.18
+  laptop_x2 = laptop_x1 + 0.30
+  laptop_y1 = dy1 + 0.06
+  laptop_y2 = laptop_y1 + 0.22
+  add_box(we, laptop_x1, laptop_y1, laptop_x2, laptop_y2, top_z + 0.035, top_z + 0.045, M_METAL_BLK, 'Work_Laptop_Base')
+  add_box(we, laptop_x1, laptop_y2 - 0.01, laptop_x2, laptop_y2, top_z + 0.045, top_z + 0.22, M_METAL_BLK, 'Work_Laptop_Screen_Frame')
+  add_box(we, laptop_x1 + 0.018, laptop_y2 - 0.008, laptop_x2 - 0.018, laptop_y2 - 0.002, top_z + 0.065, top_z + 0.20, M_GLASS, 'Work_Laptop_Display')
+end
+seat_z = z_floor + 0.46
+add_box(we, cx1, cy1, cx2, cy2, seat_z, seat_z + 0.07, M_CHAIR_FAB, 'Work_Chair_Seat')
+chair_leg = 0.028
+[[cx1 + 0.035, cy1 + 0.035], [cx2 - 0.035 - chair_leg, cy1 + 0.035],
+ [cx1 + 0.035, cy2 - 0.035 - chair_leg], [cx2 - 0.035 - chair_leg, cy2 - 0.035 - chair_leg]].each_with_index do |(lx, ly), index|
+  add_box(we, lx, ly, lx + chair_leg, ly + chair_leg, z_floor + 0.03, seat_z, M_WOOD_DARK, "Work_Chair_Leg_#{index + 1}")
+end
+if chair_facing == :east
+  add_box(we, cx1 - 0.045, cy1 + 0.035, cx1 + 0.015, cy2 - 0.035, seat_z + 0.06, seat_z + 0.48, M_CHAIR_FAB, 'Work_Chair_Back')
+else
+  add_box(we, cx1 + 0.035, cy1 - 0.045, cx2 - 0.035, cy1 + 0.015, seat_z + 0.06, seat_z + 0.48, M_CHAIR_FAB, 'Work_Chair_Back')
+end
+work_grp.set_attribute('Workspace', 'desk_width_mm', ((dx2 - dx1) * 1000).round)
+work_grp.set_attribute('Workspace', 'desk_depth_mm', ((dy2 - dy1) * 1000).round)
+work_grp.set_attribute('Workspace', 'chair_facing', chair_facing.to_s)
+work_grp
+end
 gf_furn_grp = ents.add_group; gf_furn_grp.name = '07_GF_Interior_Furniture_by_Room'; gf_furn_grp.layer = L_GF_FURN; gffe_furn = gf_furn_grp.entities
 liv_grp = gffe_furn.add_group; liv_grp.name = 'Room_GF_Living'; le = liv_grp.entities
 add_box(le, 3.65, 2.15, 6.85, 4.25, 0.02, 0.028, M_RUG, 'Living_Area_Rug')
@@ -1562,12 +1776,19 @@ add_inflated_pillow_mesh(le, 'Scatter_Rust', 5.88, 2.42, 0.49, 420, 330, 92, 10,
 add_inflated_pillow_mesh(le, 'Scatter_Cream', 6.37, 2.43, 0.49, 450, 340, 95, -14, true, M_PILLOW_CREAM)
 add_inflated_pillow_mesh(le, 'Scatter_Sage', 6.64, 3.35, 0.49, 440, 340, 95, 85, true, M_PILLOW_SAGE)
 add_box(le, 4.95, 3.20, 5.72, 3.80, 0.028, 0.34, M_METAL_BLK)
-rounded_box_at(le, 'Coffee_Table_Top', 4.91, 3.17, 0.34, 850, 660, 38, 18, M_MARBLE_WHT)
+rounded_box_at(le, 'Coffee_Table_Travertine_Top', 4.91, 3.17, 0.34, 850, 660, 38, 18, M_TV_TRAVERTINE)
 add_box(le, 5.45, 3.45, 5.95, 3.95, 0.028, 0.26, M_BRASS)
 rounded_box_at(le, 'Nesting_Table_Top', 5.43, 3.43, 0.26, 540, 540, 28, 16, M_MARBLE_DRK)
-rounded_box_at(le, 'Art_Book_1', 5.05, 3.30, 0.378, 230, 165, 22, 6, M_PILLOW_SLATE)
-rounded_box_at(le, 'Art_Book_2', 5.07, 3.31, 0.400, 200, 150, 18, 6, M_MUSTARD)
-revolve_open_hollow_mesh(le, 'Coffee_Bowl', [[0, 0], [105, 0], [138, 28], [128, 52], [0, 48]], M_FIXTURE, 24).transform!(Geom::Transformation.translation(Geom::Vector3d.new(5.48.m, 3.52.m, 0.378.m)))
+coffee_tray = le.add_group; coffee_tray.name = 'Denim_Blue_Coffee_Table_Tray'; coffee_tray_e = coffee_tray.entities
+add_box(coffee_tray_e, 4.99, 3.38, 5.37, 3.70, 0.378, 0.388, M_TV_DENIM, 'Coffee_Tray_Base')
+add_box(coffee_tray_e, 4.99, 3.38, 5.37, 3.392, 0.388, 0.405, M_TV_DENIM, 'Coffee_Tray_Rail_South')
+add_box(coffee_tray_e, 4.99, 3.688, 5.37, 3.70, 0.388, 0.405, M_TV_DENIM, 'Coffee_Tray_Rail_North')
+add_box(coffee_tray_e, 4.99, 3.392, 5.002, 3.688, 0.388, 0.405, M_TV_DENIM, 'Coffee_Tray_Rail_West')
+add_box(coffee_tray_e, 5.358, 3.392, 5.37, 3.688, 0.388, 0.405, M_TV_DENIM, 'Coffee_Tray_Rail_East')
+cylinder_mm(coffee_tray_e, 'Coffee_Tray_Silver_Plant_Pot', 34, 50, M_TV_SILVER, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(5.09.m, 3.54.m, 0.405.m)))
+add_rosette_plant(coffee_tray_e, 'Coffee_Tray_Plant', 5.09, 3.54, 0.455, 0.055, 0.085)
+cylinder_mm(coffee_tray_e, 'Coffee_Tray_Candle', 20, 42, M_FIXTURE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(5.26.m, 3.54.m, 0.405.m)))
+cylinder_mm(coffee_tray_e, 'Coffee_Tray_Lit_Candle_Flame', 5, 10, M_LED_WARM, 12).transform!(Geom::Transformation.translation(Geom::Vector3d.new(5.26.m, 3.54.m, 0.447.m)))
 cylinder_mm(le, 'Side_Table_Top', 235, 24, M_WOOD_OAK, 24).transform!(Geom::Transformation.translation(Geom::Vector3d.new(4.08.m, 3.30.m, 0.455.m)))
 3.times do |i|
 a = i * 120.0 * Math::PI / 180.0
@@ -1575,7 +1796,7 @@ tapered_leg_at(le, "Side_Table_Leg_#{i + 1}", 4.08 + 0.14 * Math.cos(a), 3.30 + 
 end
 add_tabletop_plant(le, 4.08, 3.30, 0.479)
 entry_swing_end_y = 2.0 + 0.95
-brown_tv_panel_y1 = 2.60
+brown_tv_panel_y1 = entry_swing_end_y + 0.10
 brown_tv_panel_y2 = 4.20
 tv_center_y = (brown_tv_panel_y1 + brown_tv_panel_y2) * 0.5
 tv_y1 = tv_center_y - 0.430
@@ -1586,12 +1807,262 @@ entry_console_y2 = tv_center_y + 0.300
 entry_side_table_y1 = 3.30 - 0.235
 entry_clearances = [entry_console_y1, entry_side_table_y1].map { |y| y - entry_swing_end_y }
 raise 'Main entry door swing conflicts with the living-room furnishings.' if entry_clearances.min < 0.10
+tv_panel_door_swing_clearance = brown_tv_panel_y1 - entry_swing_end_y
+raise 'TV cabinet panel encroaches on the main entry door swing clearance.' if tv_panel_door_swing_clearance < 0.10
 tv_entry_x_clearance = 3.35 - 3.34
 raise 'TV overlaps the main entry doorway.' if tv_entry_x_clearance < 0.01
-add_box(le, 3.225, brown_tv_panel_y1, 3.26, brown_tv_panel_y2, 0.02, 2.85, M_WOOD_DARK)
-add_box(le, 3.26, entry_console_y1, 3.68, entry_console_y2, 0.18, 0.46, M_WOOD_DARK)
-add_box(le, 3.26, entry_console_y1, 3.70, entry_console_y2, 0.46, 0.49, M_MARBLE_WHT)
-add_box(le, 3.30, tv_y1, 3.34, tv_y2, 0.88, 1.52, M_METAL_BLK, 'OLED_TV')
+tv_wall_grp = le.add_group
+tv_wall_grp.name = 'Parametric_Patagonia_TV_Feature_Wall'
+tv_wall_grp.layer = L_GF_FURN
+tve = tv_wall_grp.entities
+cfg = TV_WALL_CONFIG
+wall_y1 = brown_tv_panel_y1
+wall_y2 = brown_tv_panel_y2
+measured_wall_width_mm = (wall_y2 - wall_y1) * 1000.0
+raise 'Configured WALL_W must match the clear TV wall zone.' if (cfg[:WALL_W] - measured_wall_width_mm).abs > 1.0
+wall_width_mm = cfg[:WALL_W]
+wall_height_mm = cfg[:WALL_H]
+layout_scale = [[(wall_width_mm - 2.0 * cfg[:MARGIN]) / (cfg[:TV_W] + 2.0 * cfg[:STONE_BORDER] + 900.0 + 2.0 * cfg[:MARGIN]), 0.0].max, 1.0].min
+wall_margin = cfg[:MARGIN] * layout_scale / 1000.0
+console_float = cfg[:CONSOLE_FLOAT] * layout_scale / 1000.0
+console_height = cfg[:CONSOLE_H] * layout_scale / 1000.0
+cove_height = cfg[:CEILING_COVE_H] * layout_scale / 1000.0
+stone_border = cfg[:STONE_BORDER] * layout_scale / 1000.0
+tv_width = cfg[:TV_W] * layout_scale / 1000.0
+tv_height = cfg[:TV_H] * layout_scale / 1000.0
+frame_width = tv_width + 2.0 * stone_border
+frame_height = tv_height + 2.0 * stone_border
+wall_center_y = (wall_y1 + wall_y2) * 0.5
+side_gap = 25.0 * layout_scale / 1000.0
+side_width = (wall_width_mm / 1000.0 - 2.0 * wall_margin - frame_width - 2.0 * side_gap) * 0.5
+left_panel_y1 = wall_y1 + wall_margin
+left_panel_y2 = left_panel_y1 + side_width
+frame_y1 = left_panel_y2 + side_gap
+frame_y2 = frame_y1 + frame_width
+tower_y1 = frame_y2 + side_gap
+tower_y2 = wall_y2 - wall_margin
+console_y1 = wall_y1 + wall_margin
+console_y2 = wall_y2 - wall_margin
+floor_z = 0.02
+wall_top_z = floor_z + wall_height_mm / 1000.0
+console_bottom_z = floor_z + console_float
+console_top_z = console_bottom_z + console_height
+cove_under_z = wall_top_z - cove_height
+tower_height = cove_under_z - console_top_z
+tower_width = tower_y2 - tower_y1
+min_tower_width = 300.0 * layout_scale / 1000.0
+raise 'TV feature wall layout exceeds the available wall width.' if tower_width < -0.001 || side_width < -0.001
+raise 'TV feature wall tower has no usable vertical space.' if tower_height <= 0.0
+width_check = 2.0 * wall_margin + side_width + side_gap + frame_width + side_gap + tower_width
+height_check = console_float + console_height + tower_height + cove_height
+raise 'TV feature wall widths do not add up to the wall width.' if (width_check - wall_width_mm / 1000.0).abs > 0.001
+raise 'TV feature wall heights do not add up to the wall height.' if (height_check - wall_height_mm / 1000.0).abs > 0.001
+panel_thickness = 25.0 * layout_scale / 1000.0
+console_width = console_y2 - console_y1
+add_box(tve, 3.225, wall_y1, 3.26, wall_y2, floor_z, wall_top_z, M_TV_TAUPE, 'Feature_Wall_Back_Panel')
+
+console = tve.add_group
+console.name = 'Floating_Denim_Media_Console'
+ce = console.entities
+console_front_x = 3.68
+console_back_x = 3.30
+add_box(ce, console_back_x, console_y1, console_front_x, console_y2, console_bottom_z, console_top_z, M_TV_DENIM, 'Console_Carcass')
+add_box(ce, console_front_x - 0.055, console_y1, console_front_x - 0.020, console_y2, console_bottom_z, console_top_z - 0.025, M_TV_DENIM, 'Console_Recessed_Back')
+add_box(ce, console_front_x - 0.020, console_y1, console_front_x, console_y2, console_top_z - 0.025, console_top_z, M_TV_CONSOLE_TOP, 'Console_Warm_Grey_Top')
+door_ratios = [0.23, 0.17, 0.20, 0.17, 0.23]
+reveal = 0.003
+door_widths = door_ratios.map { |ratio| ratio * (console_width - reveal * (door_ratios.length - 1)) }
+door_cursor = console_y1
+door_widths.each_with_index do |door_width, index|
+  door_cursor += reveal if index.positive?
+  material = [0, 4].include?(index) ? M_TV_DENIM : M_TV_FLUTED
+  if index == 2
+    niche_y1 = door_cursor
+    niche_y2 = door_cursor + door_width
+    add_box(ce, console_front_x - 0.053, niche_y1, console_front_x - 0.022, niche_y2, console_bottom_z + 0.025, console_top_z - 0.035, M_TV_DARK_BLUE, 'Console_Open_Center_Niche')
+    niche_h = console_top_z - console_bottom_z - 0.06
+    2.times do |shelf_index|
+      shelf_z = console_bottom_z + 0.025 + niche_h * (shelf_index + 1) / 3.0
+      add_box(ce, console_front_x - 0.075, niche_y1 + 0.008, console_front_x - 0.018, niche_y2 - 0.008, shelf_z, shelf_z + panel_thickness, M_TV_DENIM, "Console_Open_Niche_Shelf_#{shelf_index + 1}")
+      add_box(ce, console_front_x - 0.078, niche_y1 + 0.010, console_front_x - 0.074, niche_y2 - 0.010, shelf_z + panel_thickness, shelf_z + panel_thickness + 0.004, M_LED_WARM_WHITE, "Console_Niche_LED_#{shelf_index + 1}")
+    end
+    av_w = [niche_y2 - niche_y1 - 0.020, 0.055].min
+    add_box(ce, console_front_x - 0.105, niche_y1 + 0.008, console_front_x - 0.058, niche_y1 + 0.008 + av_w, console_bottom_z + 0.030, console_bottom_z + 0.055, M_METAL_BLK, 'Console_AV_Box_1')
+    add_box(ce, console_front_x - 0.105, niche_y2 - 0.008 - av_w, console_front_x - 0.058, niche_y2 - 0.008, console_bottom_z + 0.030, console_bottom_z + 0.055, M_METAL_BLK, 'Console_AV_Box_2')
+    bowl_z = console_bottom_z + 0.025 + niche_h / 3.0 + panel_thickness
+    cylinder_mm(ce, 'Console_Niche_Bowl', 28.0 * layout_scale, 12.0 * layout_scale, M_FIXTURE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new((console_front_x - 0.08).m, ((niche_y1 + niche_y2) * 0.5).m, bowl_z.m)))
+  else
+    add_box(ce, console_front_x - 0.025, door_cursor, console_front_x, door_cursor + door_width, console_bottom_z + 0.012, console_top_z - 0.025, material, "Console_Front_Leaf_#{index + 1}")
+    handle_y = door_cursor + door_width * 0.82
+    add_box(ce, console_front_x + 0.002, handle_y, console_front_x + 0.008, handle_y + 0.008, console_bottom_z + console_height * 0.43, console_bottom_z + console_height * 0.58, M_TV_GOLD, "Console_Brushed_Gold_Handle_#{index + 1}")
+  end
+  door_cursor += door_width
+end
+add_box(ce, console_front_x - 0.030, console_y1, console_front_x - 0.020, console_y2, console_bottom_z - 0.004, console_bottom_z + 0.006, M_LED_WARM, 'Console_Underglow_LED')
+
+lower_panel = tve.add_group
+lower_panel.name = 'Patagonia_Stone_Lower_Bookmatch'
+lower_panel.layer = L_STONE
+lower_panel.set_attribute('Stone', 'edge_detail', '45 degree miter; 2 mm eased edges')
+tv_center_z = floor_z + 1.20
+lower_top_z = tv_center_z + frame_height * 0.5
+lower_bottom_z = tv_center_z - frame_height * 0.5
+add_beveled_box(lower_panel.entities, 'Patagonia_Lower_Panel_Mitered_2mm_Eased', 3.265, frame_y1, 3.285, frame_y2, lower_bottom_z, lower_top_z, 0.002, M_PATAGONIA_STONE)
+tv_bezel = 0.010
+tv_outer_w = tv_width
+tv_outer_h = tv_height
+tv_y1 = wall_center_y - tv_outer_w * 0.5
+tv_y2 = wall_center_y + tv_outer_w * 0.5
+tv_z1 = tv_center_z - tv_outer_h * 0.5
+tv_z2 = tv_center_z + tv_outer_h * 0.5
+add_box(tve, 3.285, tv_y1, 3.305, tv_y2, tv_z1, tv_z2, M_METAL_BLK, 'OLED_TV_10mm_Bezel')
+add_box(tve, 3.306, tv_y1 + tv_bezel, 3.309, tv_y2 - tv_bezel, tv_z1 + tv_bezel, tv_z2 - tv_bezel, M_TV_SCREEN, 'OLED_TV_Glossy_Black_Screen')
+led_width = 0.010
+inner_x = 3.312
+add_box(tve, inner_x, tv_y1 - led_width, inner_x + 0.003, tv_y1, tv_z1, tv_z2, M_LED_WARM_WHITE, 'TV_Inner_Halo_Left')
+add_box(tve, inner_x, tv_y2, inner_x + 0.003, tv_y2 + led_width, tv_z1, tv_z2, M_LED_WARM_WHITE, 'TV_Inner_Halo_Right')
+add_box(tve, inner_x, tv_y1, inner_x + 0.003, tv_y2, tv_z1 - led_width, tv_z1, M_LED_WARM_WHITE, 'TV_Inner_Halo_Bottom')
+add_box(tve, inner_x, tv_y1, inner_x + 0.003, tv_y2, tv_z2, tv_z2 + led_width, M_LED_WARM_WHITE, 'TV_Inner_Halo_Top')
+outer_x = 3.270
+add_box(tve, outer_x, frame_y1 - led_width, outer_x + 0.003, frame_y1, lower_bottom_z, lower_top_z, M_LED_WARM, 'TV_Outer_Halo_Left_Setback')
+add_box(tve, outer_x, frame_y2, outer_x + 0.003, frame_y2 + led_width, lower_bottom_z, lower_top_z, M_LED_WARM, 'TV_Outer_Halo_Right_Setback')
+add_box(tve, outer_x, frame_y1, outer_x + 0.003, frame_y2, lower_bottom_z - led_width, lower_bottom_z, M_LED_WARM, 'TV_Outer_Halo_Bottom_Setback')
+add_box(tve, outer_x, frame_y1, outer_x + 0.003, frame_y2, lower_top_z, lower_top_z + led_width, M_LED_WARM, 'TV_Outer_Halo_Top_Setback')
+lower_panel.set_attribute('Stone', 'outer_halo_setback_mm', 15)
+
+shelf_z = lower_top_z + 0.090 * layout_scale
+shelf_depth = cfg[:SHELF_DEPTH] * layout_scale / 1000.0
+add_box(tve, 3.285, frame_y1, 3.285 + shelf_depth, frame_y2, shelf_z, shelf_z + panel_thickness, M_TV_DENIM, 'Floating_Denim_Shelf')
+add_box(tve, 3.290, frame_y1, 3.294, frame_y2, shelf_z - 0.006, shelf_z - 0.002, M_LED_WARM_WHITE, 'Floating_Shelf_Underedge_LED')
+floating_decor_z = shelf_z + panel_thickness
+vase_y = frame_y1 + frame_width * 0.12
+cylinder_mm(tve, 'Floating_Shelf_White_Vase', 15.0 * layout_scale, 65.0 * layout_scale, M_FIXTURE, 18).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.315.m, vase_y.m, floating_decor_z.m)))
+book_y = frame_y1 + frame_width * 0.28
+add_box(tve, 3.305, book_y, 3.335, book_y + 0.045 * layout_scale, floating_decor_z, floating_decor_z + 0.012 * layout_scale, M_METAL_BLK, 'Floating_Shelf_Black_Book_1')
+add_box(tve, 3.305, book_y + 0.006, 3.335, book_y + 0.051 * layout_scale, floating_decor_z + 0.012 * layout_scale, floating_decor_z + 0.024 * layout_scale, M_METAL_BLK, 'Floating_Shelf_Black_Book_2')
+ring_y = wall_center_y
+ring_radius = 18.0 * layout_scale
+12.times do |ring_index|
+  a1 = 2.0 * Math::PI * ring_index / 12.0
+  a2 = 2.0 * Math::PI * (ring_index + 1) / 12.0
+  ring_z = floating_decor_z + 0.020 * layout_scale
+  p1 = [3340, (ring_y + ring_radius * Math.cos(a1) / 1000.0) * 1000.0, (ring_z + ring_radius * Math.sin(a1) / 1000.0) * 1000.0]
+  p2 = [3340, (ring_y + ring_radius * Math.cos(a2) / 1000.0) * 1000.0, (ring_z + ring_radius * Math.sin(a2) / 1000.0) * 1000.0]
+  cylinder_between_mm(tve, "Floating_Shelf_Gold_Ring_#{ring_index + 1}", p1, p2, 1.6 * layout_scale, M_TV_GOLD, 8)
+end
+pot_y = frame_y1 + frame_width * 0.83
+cylinder_mm(tve, 'Floating_Shelf_Denim_Plant_Pot', 12.0 * layout_scale, 26.0 * layout_scale, M_TV_DENIM, 16).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.315.m, pot_y.m, floating_decor_z.m)))
+add_rosette_plant(tve, 'Floating_Shelf_Small_Plant', 3.315, pot_y, floating_decor_z + 26.0 * layout_scale / 1000.0, 0.012 * layout_scale, 0.035 * layout_scale)
+upper_panel = tve.add_group
+upper_panel.name = 'Patagonia_Stone_Upper_Bookmatch'
+upper_panel.layer = L_STONE
+upper_panel.set_attribute('Stone', 'edge_detail', '45 degree miter; 2 mm eased edges')
+upper_bottom_z = shelf_z + panel_thickness + 0.090 * layout_scale
+upper_top_z = cove_under_z - 0.020
+add_beveled_box(upper_panel.entities, 'Patagonia_Upper_Panel_Mirrored_Mitered_2mm_Eased', 3.285, frame_y1, 3.305, frame_y2, upper_bottom_z, upper_top_z, 0.002, M_PATAGONIA_STONE_MIRROR)
+add_box(tve, 3.306, frame_y1 + 0.020, 3.309, frame_y2 - 0.020, upper_top_z - 0.030, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Top_Edge_LED')
+add_box(tve, 3.306, frame_y1 + 0.020, 3.309, frame_y1 + 0.030, upper_bottom_z + 0.020, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Left_Edge_LED')
+add_box(tve, 3.306, frame_y2 - 0.030, 3.309, frame_y2 - 0.020, upper_bottom_z + 0.020, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Right_Edge_LED')
+
+if side_width > 0.0
+  add_box(tve, 3.265, left_panel_y1, 3.285, left_panel_y2, console_top_z, cove_under_z, M_TV_FLUTED, 'Left_Fluted_Panel_Back')
+  slat_width = 30.0 * layout_scale / 1000.0
+  slat_depth = 12.0 * layout_scale / 1000.0
+  slat_gap = (side_width - 10.0 * slat_width) / 9.0
+  10.times do |slat_index|
+    sy1 = left_panel_y1 + slat_index * (slat_width + slat_gap)
+    add_box(tve, 3.285, sy1, 3.285 + slat_depth, sy1 + slat_width, console_top_z, cove_under_z, M_TV_FLUTED, "Left_Fluted_Slat_#{slat_index + 1}")
+  end
+  sconce_y = (left_panel_y1 + left_panel_y2) * 0.5
+  sconce_z = floor_z + (wall_height_mm * 0.55) / 1000.0
+  s_points = [[sconce_y, sconce_z - 0.105 * layout_scale], [sconce_y + 0.035 * layout_scale, sconce_z - 0.065 * layout_scale],
+              [sconce_y + 0.030 * layout_scale, sconce_z - 0.020 * layout_scale], [sconce_y - 0.030 * layout_scale, sconce_z + 0.020 * layout_scale],
+              [sconce_y - 0.035 * layout_scale, sconce_z + 0.065 * layout_scale], [sconce_y, sconce_z + 0.105 * layout_scale]]
+  s_points.each_cons(2) do |a, b|
+    cylinder_between_mm(tve, 'Gold_S_Curve_Sconce_Segment', [3310, a[0] * 1000.0, a[1] * 1000.0], [3310, b[0] * 1000.0, b[1] * 1000.0], 2.0 * layout_scale, M_TV_GOLD, 10)
+  end
+  add_box(tve, 3.300, sconce_y - 0.003, 3.302, sconce_y + 0.003, sconce_z - 0.11 * layout_scale, sconce_z + 0.11 * layout_scale, M_LED_WARM, 'S_Curve_Sconce_Glow')
+end
+
+raise 'TOWER_BACK must be :stone or :dark_grey_blue.' unless [:stone, :dark_grey_blue].include?(cfg[:TOWER_BACK])
+if tower_width >= min_tower_width
+  tower = tve.add_group
+  tower.name = 'Full_Height_Denim_Open_Shelving_Tower'
+  tower_e = tower.entities
+  tower.layer = L_GF_FURN
+  tower_back_mat = cfg[:TOWER_BACK] == :stone ? M_PATAGONIA_STONE : M_TV_DARK_BLUE
+  tower_back = add_box(tower_e, 3.285, tower_y1, 3.305, tower_y2, console_top_z, cove_under_z, tower_back_mat, 'Tower_Back_Panel')
+  tower_back.layer = L_STONE if cfg[:TOWER_BACK] == :stone
+  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y1 + panel_thickness, console_top_z, cove_under_z, M_TV_DENIM, 'Tower_Left_Side')
+  add_box(tower_e, 3.285, tower_y2 - panel_thickness, 3.43, tower_y2, console_top_z, cove_under_z, M_TV_DENIM, 'Tower_Right_Side')
+  target_tier_clear = 0.350
+  tier_count = [(tower_height / target_tier_clear).round, 3].max
+  tier_height = tower_height / tier_count.to_f
+  clear_tier_height = tier_height - panel_thickness
+  tier_count.times do |tier_index|
+    tier_base = console_top_z + tier_index * tier_height
+    add_box(tower_e, 3.285, tower_y1, 3.43, tower_y2, tier_base, tier_base + panel_thickness, M_TV_DENIM, "Tower_Tier_Shelf_#{tier_index + 1}")
+    led_z = tier_base + tier_height - panel_thickness - 0.004
+    add_box(tower_e, 3.405, tower_y1 + panel_thickness, 3.410, tower_y2 - panel_thickness, led_z, led_z + 0.004, M_LED_WARM, "Tower_Tier_LED_#{tier_index + 1}")
+    decor_base = tier_base + panel_thickness
+    decor_center_y = (tower_y1 + tower_y2) * 0.5
+    pot_radius = [[tower_width * 0.18, 0.038].min, 0.018].max
+    if tier_index == 0 || tier_index == 1 || tier_index == 2
+      pot_mat = [M_METAL_BLK, M_FIXTURE, M_TV_TAUPE][tier_index]
+      cylinder_mm(tower_e, "Tower_Plant_Pot_#{tier_index + 1}", pot_radius * 1000.0, [clear_tier_height * 0.25, 0.055].min * 1000.0, pot_mat, 16).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.34.m, decor_center_y.m, decor_base.m)))
+      plant_height = [clear_tier_height * 0.55, 0.13].min
+      add_rosette_plant(tower_e, "Tower_Tier_Plant_#{tier_index + 1}", 3.34, decor_center_y, decor_base + [clear_tier_height * 0.25, 0.055].min, [tower_width * 0.20, 0.055].min, plant_height)
+    elsif tier_index == 3
+      cylinder_mm(tower_e, 'Tower_Brass_Sculpture_Base', 28.0 * layout_scale, 6.0 * layout_scale, M_TV_GOLD, 18).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.34.m, decor_center_y.m, decor_base.m)))
+      cylinder_between_mm(tower_e, 'Tower_Brass_Sculpture_Ring', [3340, decor_center_y * 1000.0, decor_base * 1000.0 + 8], [3340, decor_center_y * 1000.0, (decor_base + clear_tier_height * 0.55) * 1000.0], 3.0 * layout_scale, M_TV_GOLD, 12)
+    else
+      book_h = [clear_tier_height * 0.58, 0.105].min
+      book_w = [tower_width * 0.22, 0.045].min
+      3.times do |book_index|
+        by1 = tower_y1 + panel_thickness + 0.006 + book_index * (book_w + 0.004)
+        next if by1 + book_w > tower_y2 - panel_thickness
+        book_mat = [M_TV_DENIM, M_FIXTURE, M_TV_TAUPE][book_index]
+        add_box(tower_e, 3.32, by1, 3.32 + 0.045, by1 + book_w, decor_base, decor_base + book_h, book_mat, "Tower_Book_#{tier_index}_#{book_index + 1}")
+      end
+      cylinder_mm(tower_e, "Tower_Brass_Ornament_#{tier_index}", 18.0 * layout_scale, 30.0 * layout_scale, M_TV_GOLD, 16).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.34.m, tower_y2 - panel_thickness - 0.030, decor_base.m)))
+    end
+  end
+  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y2, cove_under_z - panel_thickness, cove_under_z, M_TV_DENIM, 'Tower_Top_Cap')
+  tower.set_attribute('Shelving', 'tier_count', tier_count)
+  tower.set_attribute('Shelving', 'clear_tier_height_mm', (clear_tier_height * 1000.0).round)
+else
+  puts "WARNING: Right shelving tower skipped; remaining width #{(tower_width * 1000.0).round} mm is below the scaled minimum #{(min_tower_width * 1000.0).round} mm."
+end
+
+add_box(tve, 3.225, wall_y1, 3.90, wall_y2, wall_top_z, wall_top_z + 0.018, M_TV_WHITE, 'Matte_White_Ceiling_Patch')
+3.times do |light_index|
+  light_y = wall_y1 + wall_width_mm / 4000.0 + light_index * wall_width_mm / 3000.0
+  cylinder_mm(tve, "Feature_Wall_Recessed_Downlight_#{light_index + 1}", 22.0 * layout_scale, 8.0, M_LED_WARM_WHITE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.52.m, light_y.m, (wall_top_z - 0.010).m)))
+end
+add_box(tve, 3.225, wall_y1, 3.345, wall_y2, cove_under_z, wall_top_z, M_TV_WHITE, 'Warm_Ceiling_Cove_Fascia')
+add_box(tve, 3.340, wall_y1 + wall_margin, 3.345, wall_y2 - wall_margin, cove_under_z + 0.008, cove_under_z + 0.014, M_LED_WARM, 'Warm_Ceiling_Cove_LED')
+
+plant_y = tower_y1 + tower_width * 0.55
+cylinder_mm(tve, 'Feature_Wall_Tropical_Plant_White_Pot', 72.0, 145.0, M_FIXTURE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.74.m, plant_y.m, floor_z.m)))
+add_rosette_plant(tve, 'Feature_Wall_Tropical_Plant', 3.74, plant_y, floor_z + 0.145, 0.16, 0.62)
+add_box(tve, 3.29, wall_y2 + 0.005, 3.34, wall_y2 + 0.030, floor_z, wall_top_z, M_TV_CURTAIN, 'Dark_Grey_Curtain_Edge')
+
+console_decor_z = console_top_z + 0.020
+vase_y = console_y1 + console_width * 0.10
+cylinder_mm(ce, 'Console_Top_Denim_Ribbed_Vase', 28.0 * layout_scale, 78.0 * layout_scale, M_TV_DENIM, 18).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.50.m, vase_y.m, console_decor_z.m)))
+4.times do |flower_index|
+  cylinder_between_mm(ce, "Console_Vase_Dried_Flower_#{flower_index + 1}", [3500, vase_y * 1000.0, console_decor_z * 1000.0 + 78.0 * layout_scale], [3500 + (flower_index - 2) * 8, vase_y * 1000.0 + (flower_index - 2) * 7, console_decor_z * 1000.0 + 145.0 * layout_scale], 1.3 * layout_scale, M_FIXTURE, 8)
+end
+figure_y = console_y1 + console_width * 0.34
+cylinder_between_mm(ce, 'Console_Top_Gold_Figure_Eight_1', [3500, figure_y * 1000.0 - 18, console_decor_z * 1000.0 + 30], [3500, figure_y * 1000.0 + 18, console_decor_z * 1000.0 + 30], 2.5 * layout_scale, M_TV_GOLD, 10)
+cylinder_between_mm(ce, 'Console_Top_Gold_Figure_Eight_2', [3500, figure_y * 1000.0 + 18, console_decor_z * 1000.0 + 30], [3500, figure_y * 1000.0 - 18, console_decor_z * 1000.0 + 30], 2.5 * layout_scale, M_TV_GOLD, 10)
+photo_y = console_y1 + console_width * 0.66
+add_box(ce, 3.48, photo_y - 0.035 * layout_scale, 3.49, photo_y + 0.035 * layout_scale, console_decor_z, console_decor_z + 0.080 * layout_scale, M_TV_GOLD, 'Console_Top_Gold_Framed_Photo')
+lantern_y = console_y1 + console_width * 0.90
+add_box(ce, 3.47, lantern_y - 0.035 * layout_scale, 3.53, lantern_y + 0.035 * layout_scale, console_decor_z, console_decor_z + 0.105 * layout_scale, M_TV_GOLD, 'Console_Top_Brass_Lantern')
+puts "TV FEATURE WALL | wall=#{wall_width_mm.round} x #{wall_height_mm.round} mm | scale=#{layout_scale.round(3)} | frame=#{(frame_width * 1000).round} x #{(frame_height * 1000).round} mm | TV=#{(tv_width * 1000).round} x #{(tv_height * 1000).round} mm"
+puts "TV FEATURE WALL | console=#{(console_width * 1000).round} mm wide x #{(console_height * 1000).round} mm high | tower=#{(tower_width * 1000).round} mm wide x #{(tower_height * 1000).round} mm high | tiers=#{defined?(tier_count) ? tier_count : 0} | equal width/height checks passed"
+puts "Supply textures: Patagonia stone=#{bmp_patagonia}; floor marble=#{bmp_marble}; fluted wood=#{bmp_fluted_wood}"
 add_split_ac_unit(le, 3.260, tv_center_y, 2.56, 90)
 din_grp = gffe_furn.add_group; din_grp.name = 'Room_GF_Dining_and_Kitchen'; de = din_grp.entities
 add_box(de, 4.88, 5.05, 5.38, 5.55, 0.02, 0.05, M_BRASS)
@@ -1637,11 +2108,13 @@ cabinet_door_hinge_x = (p1x1 + p1x2) * 0.5 - 0.015
 cabinet_door_clearance = cabinet_door_hinge_x - fridge_front_x
 fridge_window_clearance = fridge_y1 - window_w3_y2
 tv_panel_window_clearance = window_w3_y1 - brown_tv_panel_y2
+tv_panel_door_swing_clearance = brown_tv_panel_y1 - entry_swing_end_y
 return_fridge_clearance = return_y1 - fridge_y2
 fridge_return_swing_clearance = fridge_front_x - return_x2
 raise 'Refrigerator blocks the adjacent cabinet door opening.' if cabinet_door_clearance < 0.050
 raise 'Refrigerator is too close to the shifted kitchen window.' if fridge_window_clearance < window_furniture_clearance
 raise 'TV panel is too close to the shifted kitchen window.' if tv_panel_window_clearance < window_furniture_clearance
+raise 'TV panel is too close to the main entry door swing.' if tv_panel_door_swing_clearance < 0.100
 raise 'TV panel and shifted kitchen window must have equal clearances.' if (tv_panel_window_clearance - fridge_window_clearance).abs > 0.001
 raise 'L-counter return conflicts with the refrigerator.' if return_fridge_clearance < 0.050
 raise 'L-counter return blocks the refrigerator door swing.' if fridge_return_swing_clearance < 0.050
@@ -1652,6 +2125,7 @@ kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_hinge_side', 'east
 kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_door_clearance_mm', (cabinet_door_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'window_W3_clearance_mm', (fridge_window_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'tv_panel_to_window_clearance_mm', (tv_panel_window_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'tv_panel_to_entry_door_swing_clearance_mm', (tv_panel_door_swing_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_to_l_counter_clearance_mm', (return_fridge_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_swing_to_l_counter_clearance_mm', (fridge_return_swing_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_hinge_side', 'north')
@@ -1845,6 +2319,7 @@ end
 condenser_group.set_attribute('MEP', 'status', 'Concept layout only. Discharge faces rear yard and not the kitchen or bathroom windows. Manufacturer discharge clearances and boundary conditions must be reviewed before installation.')
 
 build_luxury_bedroom_suite(gffe_furn, 'Room_GF_Bedroom_1', 0.02, :east, 9.85, 2.05, 3.55, [7.88, 4.25, 9.85, 4.85], :south)
+add_bedroom_workstation(gffe_furn, 'Bedroom1_Home_Office', [9.30, 3.60, 9.82, 4.22], [8.76, 3.67, 9.24, 4.15], 0.02, :east)
 bed1_ac = add_split_ac_unit(gffe_furn, 8.78, 4.82, 2.23, 0)
 bed1_ac.set_attribute('HVAC', 'airflow', 'Discharge across room from internal north wall, away from bed headboard; verify louver setup onsite')
 def add_xz_extrusion(parent_ents, name, y1, y2, xz_pts, mat)
@@ -2064,10 +2539,12 @@ add_box(
 )
 sf_furn_grp = ents.add_group; sf_furn_grp.name = '08_2F_Interior_Furniture_by_Room'; sf_furn_grp.layer = L_2F_FURN; sffe_furn = sf_furn_grp.entities
 build_luxury_bedroom_suite(sffe_furn, 'Room_2F_Bedroom_2', 3.02, :east, 9.85, 2.05, 3.55, [7.88, 4.25, 9.85, 4.85], :south)
+add_bedroom_workstation(sffe_furn, 'Bedroom2_Home_Office', [9.30, 3.60, 9.82, 4.22], [8.76, 3.67, 9.24, 4.15], 3.02, :east)
 bed2_ac = add_split_ac_unit(sffe_furn, 7.065, 2.94, 5.25, 90)
 bed2_ac.set_attribute('HVAC', 'mounting_wall', 'Bedroom 2 west interior wall')
 bed2_ac.set_attribute('HVAC', 'airflow', 'Wall-mounted split indoor unit facing east, high on west bedroom wall, clear of entry and wardrobe')
 build_luxury_bedroom_suite(sffe_furn, 'Room_2F_Bedroom_3', 3.02, :west, 0.15, 5.15, 6.65, [2.595, 4.65, 3.075, 6.75], :west)
+add_bedroom_workstation(sffe_furn, 'Bedroom3_Home_Office', [0.20, 7.35, 0.88, 7.90], [0.28, 6.73, 0.78, 7.21], 3.02, :north)
 bed3_ac = add_split_ac_unit(sffe_furn, 2.55, 4.10, 5.22, 180)
 bed3_ac.set_attribute('HVAC', 'airflow', 'Discharge across bedroom from balcony-side south wall, not at headboard; confirm clearance above terrace door onsite')
 fam_grp = sffe_furn.add_group; fam_grp.name = 'Room_2F_Family_Hall'; fme = fam_grp.entities
@@ -2249,8 +2726,8 @@ sh_global['Dark'] = 84
 sh_global['EdgesCastShadows'] = false if sh_global.keys.include?('EdgesCastShadows')
 pages = model.pages
 pages.to_a.each { |p| pages.erase(p) }
-all_layers = [L_SUV, L_SITE, L_FENCE, L_PERIM, L_GF_EXT, L_GF_WALLS, L_GF_FURN, L_2F_SLAB, L_2F_EXT, L_2F_WALLS, L_2F_FURN, L_ROOF]
-def create_scene_tab(model, name, eye_pt, target_pt, fov_deg, all_layers, hidden_layers = [])
+all_layers = [L_SUV, L_SITE, L_FENCE, L_PERIM, L_GF_EXT, L_GF_WALLS, L_GF_FURN, L_2F_SLAB, L_2F_EXT, L_2F_WALLS, L_2F_FURN, L_ROOF, L_OPENINGS_CLOSED, L_OPENINGS_MAX, L_STONE]
+def create_scene_tab(model, name, eye_pt, target_pt, fov_deg, all_layers, hidden_layers = [], openings_max = false)
 page = model.pages.add(name)
 cam = page.camera
 up_vec = (eye_pt.x == target_pt.x && eye_pt.y == target_pt.y) ? Y_AXIS : Z_AXIS
@@ -2258,6 +2735,8 @@ cam.set(eye_pt, target_pt, up_vec)
 cam.perspective = true
 cam.fov = fov_deg
 all_layers.each { |l| page.set_visibility(l, !hidden_layers.include?(l)) }
+page.set_visibility(L_OPENINGS_CLOSED, !openings_max)
+page.set_visibility(L_OPENINGS_MAX, openings_max)
 page.use_camera = true
 page.use_hidden_layers = true
 page.use_style = true
@@ -2270,6 +2749,21 @@ sh['Light'] = 88
 sh['Dark'] = 84
 page
 end
+def create_opening_state_scene(model, name, openings_max)
+page = model.pages.add(name)
+page.set_visibility(L_OPENINGS_CLOSED, !openings_max)
+page.set_visibility(L_OPENINGS_MAX, openings_max)
+page.use_camera = false
+page.use_hidden_layers = true
+page.use_style = false
+page.use_rendering_options = false
+page.use_shadow_info = false
+page
+end
+missing_open_doors = $door_opening_ids - $max_open_door_ids
+raise "Doors missing maximum-open leaves: #{missing_open_doors.join(', ')}" unless missing_open_doors.empty?
+missing_bathroom_doors = ['D4', 'D_TB2'] - $max_open_door_ids
+raise "Bathroom doors missing from the all-open scene: #{missing_bathroom_doors.join(', ')}" unless missing_bathroom_doors.empty?
 create_scene_tab(model, '1_Full_Exterior', Geom::Point3d.new(3.2.m, -9.5.m, 4.2.m), Geom::Point3d.new(5.2.m, 4.0.m, 3.0.m), 50.0, all_layers, [])
 create_scene_tab(model, '2_Exterior_No_SUV', Geom::Point3d.new(3.2.m, -9.5.m, 4.2.m), Geom::Point3d.new(5.2.m, 4.0.m, 3.0.m), 50.0, all_layers, [L_SUV])
 create_scene_tab(model, '3_Dollhouse_2nd_Floor', Geom::Point3d.new(5.0.m, -3.5.m, 12.5.m),Geom::Point3d.new(5.0.m, 5.2.m, 3.2.m), 50.0, all_layers, [L_ROOF])
@@ -2292,7 +2786,14 @@ create_scene_tab(model, '6_Rear_Exterior', Geom::Point3d.new(3.5.m, 18.5.m, 5.8.
 ].each do |(sname, eye, tgt)|
 create_scene_tab(model, sname, Geom::Point3d.new(eye[0].m, eye[1].m, eye[2].m), Geom::Point3d.new(tgt[0].m, tgt[1].m, tgt[2].m), 65.0, all_layers, [L_SUV, L_ROOF])
 end
-model.pages.selected_page = model.pages['11_StairLanding'] if model.pages['11_StairLanding']
+create_opening_state_scene(model, '13_Open_All_Doors_Windows_Keep_View', true)
+create_opening_state_scene(model, '14_Close_All_Doors_Windows_Keep_View', false)
+tv_camera_distance = 1.25 * wall_width_mm / 1000.0
+tv_camera_eye = Geom::Point3d.new((3.225 + tv_camera_distance).m, wall_center_y.m, (floor_z + 1.20).m)
+tv_camera_target = Geom::Point3d.new(3.225.m, wall_center_y.m, (floor_z + 1.20).m)
+create_scene_tab(model, '15_TV_Feature_Wall', tv_camera_eye, tv_camera_target, 50.0, all_layers, [L_SUV, L_ROOF])
+model.pages.selected_page = model.pages['15_TV_Feature_Wall'] if model.pages['15_TV_Feature_Wall']
+model.active_view.zoom_extents if model.active_view
 model.active_view.refresh if model.active_view
 # #region agent log
 begin
@@ -2343,11 +2844,11 @@ model.commit_operation
 puts '===================================================================='
 puts 'COMBINED MINIMAL ELEGANT EXTERIOR + UPGRADED INTERIOR COMPLETE!'
 puts '- Exterior: Minimal Elegant V6 Architecture, Gardens, Charcoal Roof & Black SUV.'
-puts '- Floors: Pietrasanta 35x35 in Bath 1, Aston Nature 47x47 in Bath 2,'
-puts '  SPC light-oak planks in all bedrooms, Porcelanato 60x60 on GF and 2F hall.'
+puts '- Floors: 1200x1200 cream marble in GF living/dining/kitchen, Pietrasanta 35x35 in Bath 1,'
+puts '  Aston Nature 47x47 in Bath 2, SPC light-oak planks in bedrooms, Porcelanato in halls.'
 puts '  No checkerboard placeholder tiles. All windows are operable (slide/awning).'
 puts '- Kitchen: W3 shifted 600mm toward the entrance; east-facing west-wall refrigerator; 600 x 1050mm L sink counter and aligned L uppers.'
-puts '- Interior: bathroom render scenes, fluted vanity, rain shower, dining pendant.'
+puts '- Interior: scaled Patagonia TV feature wall, warm LED lighting, bathroom scenes, fluted vanity, dining pendant.'
 puts '===================================================================='
 rescue StandardError => err
 model.abort_operation
