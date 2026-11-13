@@ -714,56 +714,16 @@ add_box(e, fixed_coord - 0.006, a + s, fixed_coord + 0.006, b - s, z1 + f + s, z
 add_box(e, fixed_coord + 0.006, (side == 1 ? b - 0.037 : a + 0.027), fixed_coord + 0.026, (side == 1 ? b - 0.027 : a + 0.037), z1 + 0.85, z1 + 0.97, M_CHROME)
 hinge = Geom::Point3d.new(fixed_coord.m, (side == 1 ? a : b).m, z1.m)
 end
-display_angle = id == 'W3' ? 16.0 : (id == 'W5' ? 0.0 : 88.0)
-outward_sign = id == 'W3' ? -side : (horizontal && id == 'W5' ? -side : side)
+display_angle = id == 'W5' ? 0.0 : 88.0
+outward_sign = horizontal && id == 'W5' ? -side : side
 leaf.transform!(Geom::Transformation.rotation(hinge, Z_AXIS, (outward_sign * display_angle).degrees))
-leaf.set_attribute('Opening', 'type', id == 'W3' ? 'inward casement with exterior security grille' : 'outward casement')
+leaf.set_attribute('Opening', 'type', 'outward casement')
 leaf.set_attribute('Opening', 'display_angle_degrees', display_angle)
 leaf.set_attribute('Opening', 'maximum_open_angle_degrees', 88.0)
 end
 net = [r2 - r1 - 2.0 * f - 0.020 - 4.0 * s, 0.0].max * [z2 - z1 - 2.0 * f - 2.0 * s, 0.0].max
 w_grp.set_attribute('Ventilation', 'full_open_estimated_clear_m2', net.round(3))
-w_grp.set_attribute('Ventilation', 'assumption', id == 'W3' ? 'Inward-operating casements with interior-release exterior security grille. Actual net free opening at the selected opening angle and site eligibility must be checked.' : 'Two outward-opening casements; exterior clearance, orientation and local approvals must be verified')
-if id == 'W3'
-  security = we.add_group
-  security.name = 'W3_Hinged_Exterior_Security_Grille_Interior_Quick_Release'
-  steel = security.entities
-  gx1 = fixed_coord - wall_t / 2.0 - 0.032
-  gx2 = gx1 + 0.028
-  rail = 0.027
-  add_box(steel, gx1, r1, gx2, r1 + rail, z1, z2, M_METAL_BLK, 'Security_Anchor_Left')
-  add_box(steel, gx1, r2 - rail, gx2, r2, z1, z2, M_METAL_BLK, 'Security_Anchor_Right')
-  add_box(steel, gx1, r1 + rail, gx2, r2 - rail, z1, z1 + rail, M_METAL_BLK, 'Security_Anchor_Bottom')
-  add_box(steel, gx1, r1 + rail, gx2, r2 - rail, z2 - rail, z2, M_METAL_BLK, 'Security_Anchor_Top')
-  gate = steel.add_group
-  gate.name = 'Hinged_Grille_Gate_Closed_Position'
-  bars = gate.entities
-  bar_t = 0.014
-  inner1 = r1 + rail + 0.012
-  inner2 = r2 - rail - 0.012
-  add_box(bars, gx1 - 0.004, inner1 - bar_t, gx1 + 0.012, inner1, z1 + rail, z2 - rail, M_METAL_BLK, 'Grille_Gate_Left')
-  add_box(bars, gx1 - 0.004, inner2, gx1 + 0.012, inner2 + bar_t, z1 + rail, z2 - rail, M_METAL_BLK, 'Grille_Gate_Right')
-  add_box(bars, gx1 - 0.004, inner1, gx1 + 0.012, inner2, z1 + rail, z1 + rail + bar_t, M_METAL_BLK, 'Grille_Gate_Bottom')
-  add_box(bars, gx1 - 0.004, inner1, gx1 + 0.012, inner2, z2 - rail - bar_t, z2 - rail, M_METAL_BLK, 'Grille_Gate_Top')
-  12.times do |i|
-    yy = inner1 + (inner2 - inner1) * (i + 1).to_f / 13.0
-    add_box(bars, gx1 - 0.004, yy - bar_t / 2.0, gx1 + 0.012, yy + bar_t / 2.0, z1 + rail, z2 - rail, M_METAL_BLK, "Security_Vertical_#{i + 1}")
-  end
-  [z1 + 0.49, z2 - 0.49].each_with_index do |zz, i|
-    add_box(bars, gx1 - 0.006, inner1, gx1 + 0.012, inner2, zz - 0.009, zz + 0.009, M_METAL_BLK, "Security_Stiffener_#{i + 1}")
-  end
-  [z1 + 0.21, z2 - 0.21].each_with_index do |zz, i|
-    add_box(steel, gx1 - 0.010, r1 + rail - 0.012, gx1 + 0.020, r1 + rail + 0.016, zz - 0.035, zz + 0.035, M_CHROME, "Grille_Hinge_#{i + 1}")
-  end
-  add_box(steel, gx1 + 0.006, r2 - 0.086, gx1 + 0.033, r2 - 0.052, z1 + 0.72, z1 + 0.84, M_CHROME, 'Grille_Exterior_Latch')
-  add_box(steel, fixed_coord + wall_t / 2.0 + 0.010, r2 - 0.085, fixed_coord + wall_t / 2.0 + 0.030, r2 - 0.050, z1 + 0.73, z1 + 0.86, M_BRASS, 'Interior_Manual_Emergency_Release_Concept')
-  security.set_attribute('Security', 'specification', 'Fabricated steel grille, hinged gate, tamper-resistant exterior and tool-free interior emergency release; conceptual, not field certified')
-  security.set_attribute('Security', 'maximum_clear_bar_spacing_m', (((inner2 - inner1) / 13.0) - bar_t).round(3))
-  security.set_attribute('Security', 'site_installation', 'Confirm fire escape, anchorage, releases, outward conditions and fabricator design with licensed professionals')
-  w_grp.set_attribute('Glazing', 'security_specification', 'Specify certified laminated security glazing and multipoint lock during fabrication; material is conceptual')
-  w_grp.set_attribute('Ventilation', 'preliminary_grille_clear_area_m2', (((inner2 - inner1) - 12 * bar_t) * ((z2 - z1 - 2 * rail) - 2 * 0.018)).round(3))
-  w_grp.set_attribute('Ventilation', 'warning', 'Grille clearance alone is not code-compliant net openable area. Confirm angle of sashes, exterior air, other openings and setbacks.')
-end
+w_grp.set_attribute('Ventilation', 'assumption', 'Two outward-opening casements; exterior clearance, orientation and local approvals must be verified')
 w_grp
 end
 def add_sliding_window_unit(parent_ents, id, horizontal, fixed_coord, r1, r2, z1, z2, wall_t, interior_dir = 1, panels = 2)
@@ -957,20 +917,6 @@ if awning_ids.include?(id)
   w_grp = add_awning_window_unit(parent_ents, id, horizontal, fixed_coord, r1, r2, z1, z2, wall_t, interior_dir, panels)
 else
   w_grp = add_sliding_window_unit(parent_ents, id, horizontal, fixed_coord, r1, r2, z1, z2, wall_t, interior_dir, [panels.to_i, 2].max)
-end
-if id == 'W3'
-  grille = w_grp.entities.add_group
-  grille.name = 'W3_Sliding_Window_Interior_Security_Grille'
-  gx = fixed_coord + interior_dir * (wall_t / 2.0 + 0.025)
-  add_box(grille.entities, gx - 0.012, r1 + 0.025, gx + 0.012, r1 + 0.045, z1, z2, M_METAL_BLK, 'Grille_Left_Rail')
-  add_box(grille.entities, gx - 0.012, r2 - 0.045, gx + 0.012, r2 - 0.025, z1, z2, M_METAL_BLK, 'Grille_Right_Rail')
-  add_box(grille.entities, gx - 0.012, r1 + 0.045, gx + 0.012, r2 - 0.045, z1, z1 + 0.024, M_METAL_BLK, 'Grille_Bottom_Rail')
-  add_box(grille.entities, gx - 0.012, r1 + 0.045, gx + 0.012, r2 - 0.045, z2 - 0.024, z2, M_METAL_BLK, 'Grille_Top_Rail')
-  12.times do |i|
-    y = r1 + 0.055 + (r2 - r1 - 0.110) * (i + 1) / 13.0
-    add_box(grille.entities, gx - 0.008, y - 0.007, gx + 0.008, y + 0.007, z1 + 0.024, z2 - 0.024, M_METAL_BLK, "Grille_Vertical_#{i + 1}")
-  end
-  grille.set_attribute('Security', 'specification', 'Interior fixed steel security grille; provide an independently operable emergency release where required by local code')
 end
 add_fine_mosquito_screen(w_grp.entities, id, horizontal, fixed_coord, r1, r2, z1, z2, wall_t, interior_dir)
 add_curtain_unit(w_grp.entities, id, horizontal, fixed_coord, interior_dir, r1, r2, z1 - 0.04, z2 + 0.02, wall_t) if has_curtains
@@ -1913,62 +1859,86 @@ ge.grep(Sketchup::Face).each { |f| face_mat(f, mat) unless f.deleted? }
 grp
 end
 stair_grp = gffe_furn.add_group; stair_grp.name = 'Room_GF_to_2F_Staircase'; se_st = stair_grp.entities
-stair_grp.set_attribute('Stair_Design', 'tread_depth_mm', 275.0)
-stair_grp.set_attribute('Stair_Design', 'upper_tread_depth_mm', 277.1)
 stair_grp.set_attribute('Stair_Design', 'riser_height_mm', 187.5)
 stair_grp.set_attribute('Stair_Design', 'handrail_top_height_above_nosing_mm', 900.0)
 stair_grp.set_attribute('Stair_Design', 'handrail_diameter_mm', 40.0)
 stair_grp.set_attribute('Stair_Design', 'handrail_design_basis', 'Conceptual 900 mm top height; verify dimensions, extensions, clearances, loads and local-code requirements before construction')
-stair_grp.set_attribute('Stair_Design', 'review_note', 'Conceptual 8-step lower flight, rectangular half-landing and 7-step upper flight, all within the stairwell wall faces. No formal stair or structural compliance established.')
-stair_grp.set_attribute('Stair_Design', 'landing_dimensions_mm', [820, 1450])
+stair_grp.set_attribute('Stair_Design', 'review_note', 'Conceptual same-footprint U-return stair: 10 lower risers, shared level landing, 6 upper risers. Verify clear widths, headroom, structure and local-code requirements before construction.')
 stair_grp.set_attribute('Stair_Design', 'bedroom_1_door', 'Original ground-floor door D6 remains unchanged')
 stair_grp.set_attribute('Stair_Design', 'living_room_double_height', 'Unaltered')
-zf = 0.020; riser = 3.000 / 16.0; going = 0.275; upper_going = (9.795 - 7.855) / 7.0; tread_t = 0.040; handrail_radius = 0.020; rail_h = 0.900 - handrail_radius; guard_h = 1.100
-lower_treads = 8; upper_treads = 7
-x0 = 6.775; x_land = x0 + lower_treads * going; x_east = 9.795; x_floor = 7.855
+zf = 0.020; riser = 3.000 / 16.0; tread_t = 0.040; handrail_radius = 0.020; rail_h = 0.900 - handrail_radius; guard_h = 1.100
+lower_risers = 10; upper_risers = 6
+lower_treads = lower_risers - 1; upper_treads = upper_risers - 1
+x0 = 6.775; x_floor = 7.855; x_east = 9.820; landing_depth = 0.705; x_land = x_east - landing_depth
 y_s = 4.975; y_up2 = 5.680; y_lo1 = 5.720; y_n = 6.425
-z_land = zf + lower_treads * riser; z_ff2 = zf + 16 * riser
-z_low_nosing = lambda { |x| zf + (x - x0) * (riser / going) }
-z_up_nosing = lambda { |x| z_land + (x_east - x) * (riser / upper_going) }
-low_profile = [[x0, zf], [x_land, zf], [x_land, z_land - tread_t]]
+lower_going = (x_land - x0) / lower_treads.to_f
+upper_going = (x_land - x_floor) / upper_treads.to_f
+z_land = zf + lower_risers * riser; z_ff2 = z_land + upper_risers * riser
+stair_width = y_n - y_s
+stair_grp.set_attribute('Stair_Design', 'tread_depth_mm', (lower_going * 1000).round(1))
+stair_grp.set_attribute('Stair_Design', 'upper_tread_depth_mm', (upper_going * 1000).round(1))
+stair_grp.set_attribute('Stair_Design', 'landing_dimensions_mm', [(landing_depth * 1000).round, (stair_width * 1000).round])
+z_low_nosing = lambda { |x| zf + (x - x0) * (lower_risers * riser / (x_land - x0)) }
+z_up_nosing = lambda { |x| z_land + (x_land - x) * (upper_risers * riser / (x_land - x_floor)) }
+low_profile = [[x0, zf], [x_land, zf], [x_land, zf + lower_treads * riser - tread_t]]
 lower_treads.downto(1) do |i|
-  xs = x0 + (i - 1) * going
-  low_profile << [xs, zf + i * riser - tread_t]
-  low_profile << [xs, zf + (i - 1) * riser - tread_t] if i > 1
+  x_end = x0 + i * lower_going
+  low_profile << [x_end, zf + i * riser - tread_t]
+  low_profile << [x_end, zf + (i - 1) * riser - tread_t]
 end
+low_profile << [x0, zf - tread_t]
 add_xz_extrusion(se_st, 'Lower_Flight_Closed_Carriage', y_lo1, y_n, low_profile, M_WALL_EXT)
 lower_treads.times do |idx|
-  i = idx + 1; z_top = zf + i * riser; x_r = x0 + (i - 1) * going; x_n = x0 + i * going
+  i = idx + 1; z_top = zf + i * riser; x_r = x0 + (i - 1) * lower_going; x_n = x0 + i * lower_going
   add_box(se_st, x_r, y_lo1, x_n, y_n, z_top - tread_t, z_top, M_WOOD_OAK, "Lower_Flight_Tread_#{i}")
-  add_box(se_st, x_n - 0.018, y_lo1, x_n, y_n, zf + (i - 1) * riser, z_top - tread_t, M_WALL_EXT, "Lower_Flight_Riser_#{i}")
+  add_box(se_st, x_r - 0.018, y_lo1, x_r, y_n, zf + (i - 1) * riser, z_top - tread_t, M_WALL_EXT, "Lower_Flight_Riser_#{i}")
   add_box(se_st, x_n - 0.018, y_lo1 + 0.012, x_n - 0.002, y_n - 0.012, z_top - 0.006, z_top - 0.001, M_BRASS)
 end
-add_box(se_st, x_land, y_s, x_east, y_n, zf, z_land - tread_t, M_WALL_EXT, 'Rectangular_Half_Landing_Concrete_Support')
-add_box(se_st, x_land, y_s, x_east, y_n, z_land - tread_t, z_land, M_WOOD_OAK, 'Rectangular_Half_Landing')
-up_profile = [[x_floor, z_land + upper_treads * riser - tread_t - 0.45], [x_east, z_land - tread_t - 0.45], [x_east, z_land - tread_t]]
+add_box(se_st, x_land - 0.018, y_lo1, x_land, y_n, zf + lower_treads * riser, z_land - tread_t, M_WALL_EXT, 'Lower_Flight_Final_Riser')
+landing_support_t = 0.12
+add_box(se_st, x_land, y_s, x_east, y_n, z_land - tread_t - landing_support_t, z_land - tread_t, M_WALL_EXT, 'Shared_Mid_Landing_Concrete_Slab')
+add_box(se_st, x_land, y_s, x_east, y_n, z_land - tread_t, z_land, M_WOOD_OAK, 'Shared_Mid_Landing_Wood_Top')
+up_profile = [[x_floor, z_land - 0.45], [x_land, z_land - 0.45], [x_land, z_land + riser - tread_t]]
 upper_treads.times do |idx|
-  j = idx + 1; z_top = z_land + j * riser; x_e = x_east - (j - 1) * upper_going; x_w = x_east - j * upper_going
-  up_profile << [x_e, z_top - tread_t]
+  j = idx + 1; z_top = z_land + j * riser; x_w = x_land - j * upper_going
   up_profile << [x_w, z_top - tread_t]
+  up_profile << [x_w, z_land + (j - 1) * riser - tread_t] if j < upper_treads
 end
+up_profile << [x_floor, z_ff2 - tread_t]
 add_xz_extrusion(se_st, 'Upper_Flight_Closed_Carriage', y_s, y_up2, up_profile, M_WALL_EXT)
 upper_treads.times do |idx|
-  j = idx + 1; z_top = z_land + j * riser; x_e = x_east - (j - 1) * upper_going; x_w = x_east - j * upper_going
+  j = idx + 1; z_top = z_land + j * riser; x_e = x_land - (j - 1) * upper_going; x_w = x_land - j * upper_going
   add_box(se_st, x_w, y_s, x_e, y_up2, z_top - tread_t, z_top, M_WOOD_OAK, "Upper_Flight_Tread_#{j}")
-  add_box(se_st, x_w, y_s, x_w + 0.018, y_up2, z_top - riser, z_top - tread_t, M_WALL_EXT, "Upper_Flight_Riser_#{j}")
+  add_box(se_st, x_e - 0.018, y_s, x_e, y_up2, z_land + (j - 1) * riser, z_top - tread_t, M_WALL_EXT, "Upper_Flight_Riser_#{j}")
   add_box(se_st, x_w, y_s + 0.012, x_w + 0.016, y_up2 - 0.012, z_top - 0.006, z_top - 0.001, M_BRASS)
 end
+add_box(se_st, x_floor, y_s, x_floor + 0.018, y_up2, z_land + upper_treads * riser, z_ff2 - tread_t, M_WALL_EXT, 'Upper_Flight_Final_Riser')
 lower_rail_y = y_n - 0.065
+lower_inner_rail_y = y_lo1 + 0.065
 upper_rail_y = y_s + 0.065
-cylinder_between_mm(se_st, 'Handrail_Lower_Outer', [x0 * 1000, lower_rail_y * 1000, (z_low_nosing.call(x0) + rail_h) * 1000], [x_land * 1000, lower_rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
-cylinder_between_mm(se_st, 'Handrail_Upper_Outer', [x_floor * 1000, upper_rail_y * 1000, (z_up_nosing.call(x_floor) + rail_h) * 1000], [x_east * 1000, upper_rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
-[7.05, 7.86, 8.77].each_with_index do |bx, i|
+upper_inner_rail_y = y_up2 - 0.065
+[[lower_rail_y, 'Outer'], [lower_inner_rail_y, 'Inner']].each do |rail_y, side|
+  cylinder_between_mm(se_st, "Handrail_Lower_#{side}", [x0 * 1000, rail_y * 1000, (zf + rail_h) * 1000], [x_land * 1000, rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
+end
+[[upper_rail_y, 'Outer'], [upper_inner_rail_y, 'Inner']].each do |rail_y, side|
+  cylinder_between_mm(se_st, "Handrail_Upper_#{side}", [x_floor * 1000, rail_y * 1000, (z_ff2 + rail_h) * 1000], [x_land * 1000, rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
+end
+[7.05, 7.86, 8.77, 9.08].each_with_index do |bx, i|
   bz = z_low_nosing.call(bx) + rail_h
   cylinder_between_mm(se_st, "Stair_Lower_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, lower_rail_y * 1000, bz * 1000], [bx * 1000, 6450, bz * 1000], 9, M_CHROME, 12)
 end
 [8.02, 8.42, 8.82].each_with_index do |bx, i|
   bz = z_up_nosing.call(bx) + rail_h
   cylinder_between_mm(se_st, "Stair_Upper_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, upper_rail_y * 1000, bz * 1000], [bx * 1000, 4950, bz * 1000], 9, M_CHROME, 12)
+end
+(1..lower_treads).step(2).each do |i|
+  bx = x0 + (i - 0.5) * lower_going
+  bz = zf + i * riser
+  cylinder_between_mm(se_st, "Stair_Lower_Inner_Baluster_#{i}", [bx * 1000, lower_inner_rail_y * 1000, bz * 1000], [bx * 1000, lower_inner_rail_y * 1000, (z_low_nosing.call(bx) + rail_h) * 1000], 12, M_METAL_BLK, 12)
+end
+upper_treads.times do |idx|
+  j = idx + 1; bx = x_land - (j - 0.5) * upper_going; bz = z_land + j * riser
+  cylinder_between_mm(se_st, "Stair_Upper_Inner_Baluster_#{j}", [bx * 1000, upper_inner_rail_y * 1000, bz * 1000], [bx * 1000, upper_inner_rail_y * 1000, (z_up_nosing.call(bx) + rail_h) * 1000], 12, M_METAL_BLK, 12)
 end
 add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', 7.008, 5.735, 6.430, z_ff2, z_ff2 + guard_h)
 add_box(se_st, 6.975, 5.735, 7.04, 5.775, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_Start_Anchor')
