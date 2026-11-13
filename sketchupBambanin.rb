@@ -259,13 +259,14 @@ M_TV_STONE_BACK = M_PATAGONIA_STONE
 M_TV_DARK_BLUE = get_mat(mats, 'TV_Tower_Dark_Grey_Blue', 55, 66, 78)
 M_TV_TRAVERTINE = get_mat(mats, 'TV_Coffee_Table_Travertine', 224, 216, 200, 1.0, bmp_quartz, 1200.0, 1200.0)
 M_TV_SILVER = get_mat(mats, 'TV_Coffee_Table_Silver_Pot', 185, 190, 194)
-M_TV_WHITE = get_mat(mats, 'TV_Wall_Matte_White', 247, 247, 244)
 M_TV_SCREEN = get_mat(mats, 'TV_Glossy_Black_Screen', 8, 9, 12, 0.98)
 M_TV_CURTAIN = get_mat(mats, 'TV_Dark_Grey_Curtain', 58, 61, 66, 0.72)
+TV_MODEL = 'LG OLED48B4PSA'
 TV_WALL_CONFIG = {
-  WALL_W: 1150.0, WALL_H: 2830.0, TV_W: 1450.0, TV_H: 830.0,
-  STONE_BORDER: 150.0, CONSOLE_H: 450.0, CONSOLE_FLOAT: 120.0,
-  CEILING_COVE_H: 120.0, MARGIN: 50.0, SHELF_DEPTH: 180.0,
+  WALL_W: 1150.0, WALL_H: 2830.0, TV_W: 1070.0, TV_H: 620.0,
+  TV_D: 45.9, TV_DIAGONAL_IN: 48.0,
+  STONE_BORDER: 10.0, CONSOLE_H: 450.0, CONSOLE_FLOAT: 120.0,
+  MARGIN: 25.0, SHELF_DEPTH: 180.0,
   TOWER_BACK: :stone
 }.freeze
 M_KITCHEN_TOP = get_mat(mats, 'Kitchen_Charcoal_Top', 42, 44, 47)
@@ -1420,6 +1421,9 @@ def finish_exterior_canopy(ents, name, x1, y1, x2, y2, bottom, top)
   finish
 end
 
+window_w3_y1 = 4.450
+window_w3_y2 = 5.850
+window_furniture_clearance = 0.250
 gf_grp = ents.add_group; gf_grp.name = '04_Ground_Floor_Architecture'; gfe = gf_grp.entities
 gf_front_grp = gfe.add_group; gf_front_grp.name = 'GF_Front_Facade_Walls_and_Canopies'; gf_front_grp.layer = L_GF_EXT; gffe = gf_front_grp.entities
 gf_front_shell = gffe.add_group; gf_front_shell.name = 'GF_Front_Wall_Shell'
@@ -1453,7 +1457,7 @@ gf_int_grp = gfe.add_group; gf_int_grp.name = 'GF_Rear_and_Interior_Walls'; gf_i
 gf_int_shell = gfie.add_group; gf_int_shell.name = 'GF_Interior_Wall_Shell'
 gf_int_ops = gfie.add_group; gf_int_ops.name = 'GF_Interior_Doors_Windows'
 gf_int_parts = [
-build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [4.45, 5.85], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
+build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [window_w3_y1, window_w3_y2], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E6', 3.075, 8.0, 9.85, 8.0, 0.15, 0.0, 3.0, 3.0, [
 { id: 'W1', type: :window, r: [3.90, 5.40], z_sill: 0.945, z_head: 1.640, in_dir: -1, curtains: false },
 { id: 'KITCHEN_EXHAUST_VENT', type: :vent, r: [5.53, 5.88], z_sill: 2.41, z_head: 2.65 },
@@ -1777,8 +1781,6 @@ add_inflated_pillow_mesh(le, 'Scatter_Cream', 6.37, 2.43, 0.49, 450, 340, 95, -1
 add_inflated_pillow_mesh(le, 'Scatter_Sage', 6.64, 3.35, 0.49, 440, 340, 95, 85, true, M_PILLOW_SAGE)
 add_box(le, 4.95, 3.20, 5.72, 3.80, 0.028, 0.34, M_METAL_BLK)
 rounded_box_at(le, 'Coffee_Table_Travertine_Top', 4.91, 3.17, 0.34, 850, 660, 38, 18, M_TV_TRAVERTINE)
-add_box(le, 5.45, 3.45, 5.95, 3.95, 0.028, 0.26, M_BRASS)
-rounded_box_at(le, 'Nesting_Table_Top', 5.43, 3.43, 0.26, 540, 540, 28, 16, M_MARBLE_DRK)
 coffee_tray = le.add_group; coffee_tray.name = 'Denim_Blue_Coffee_Table_Tray'; coffee_tray_e = coffee_tray.entities
 add_box(coffee_tray_e, 4.99, 3.38, 5.37, 3.70, 0.378, 0.388, M_TV_DENIM, 'Coffee_Tray_Base')
 add_box(coffee_tray_e, 4.99, 3.38, 5.37, 3.392, 0.388, 0.405, M_TV_DENIM, 'Coffee_Tray_Rail_South')
@@ -1797,7 +1799,7 @@ end
 add_tabletop_plant(le, 4.08, 3.30, 0.479)
 entry_swing_end_y = 2.0 + 0.95
 brown_tv_panel_y1 = entry_swing_end_y + 0.10
-brown_tv_panel_y2 = 4.20
+brown_tv_panel_y2 = window_w3_y1 - window_furniture_clearance
 tv_center_y = (brown_tv_panel_y1 + brown_tv_panel_y2) * 0.5
 tv_y1 = tv_center_y - 0.430
 tv_y2 = tv_center_y + 0.430
@@ -1822,18 +1824,26 @@ measured_wall_width_mm = (wall_y2 - wall_y1) * 1000.0
 raise 'Configured WALL_W must match the clear TV wall zone.' if (cfg[:WALL_W] - measured_wall_width_mm).abs > 1.0
 wall_width_mm = cfg[:WALL_W]
 wall_height_mm = cfg[:WALL_H]
-layout_scale = [[(wall_width_mm - 2.0 * cfg[:MARGIN]) / (cfg[:TV_W] + 2.0 * cfg[:STONE_BORDER] + 900.0 + 2.0 * cfg[:MARGIN]), 0.0].max, 1.0].min
+raise 'Configured TV width must be positive.' unless cfg[:TV_W] > 0.0
+tv_available_width_mm = wall_width_mm - 2.0 * (cfg[:MARGIN] + cfg[:STONE_BORDER])
+raise 'TV and stone frame do not fit the clear wall zone.' if tv_available_width_mm <= 0.0
+layout_scale = [[tv_available_width_mm / cfg[:TV_W], 0.0].max, 1.0].min
 wall_margin = cfg[:MARGIN] * layout_scale / 1000.0
 console_float = cfg[:CONSOLE_FLOAT] * layout_scale / 1000.0
 console_height = cfg[:CONSOLE_H] * layout_scale / 1000.0
-cove_height = cfg[:CEILING_COVE_H] * layout_scale / 1000.0
 stone_border = cfg[:STONE_BORDER] * layout_scale / 1000.0
 tv_width = cfg[:TV_W] * layout_scale / 1000.0
 tv_height = cfg[:TV_H] * layout_scale / 1000.0
+tv_depth = cfg[:TV_D] * layout_scale / 1000.0
+screen_diagonal = cfg[:TV_DIAGONAL_IN] * 0.0254 * layout_scale
+screen_aspect_diagonal = Math.sqrt(16.0**2 + 9.0**2)
+active_screen_width = screen_diagonal * 16.0 / screen_aspect_diagonal
+active_screen_height = screen_diagonal * 9.0 / screen_aspect_diagonal
+raise 'Selected TV model does not fit the clear wall zone.' if layout_scale < 1.0
 frame_width = tv_width + 2.0 * stone_border
 frame_height = tv_height + 2.0 * stone_border
 wall_center_y = (wall_y1 + wall_y2) * 0.5
-side_gap = 25.0 * layout_scale / 1000.0
+side_gap = 5.0 * layout_scale / 1000.0
 side_width = (wall_width_mm / 1000.0 - 2.0 * wall_margin - frame_width - 2.0 * side_gap) * 0.5
 left_panel_y1 = wall_y1 + wall_margin
 left_panel_y2 = left_panel_y1 + side_width
@@ -1847,19 +1857,31 @@ floor_z = 0.02
 wall_top_z = floor_z + wall_height_mm / 1000.0
 console_bottom_z = floor_z + console_float
 console_top_z = console_bottom_z + console_height
-cove_under_z = wall_top_z - cove_height
-tower_height = cove_under_z - console_top_z
+tower_height = wall_top_z - console_top_z
 tower_width = tower_y2 - tower_y1
 min_tower_width = 300.0 * layout_scale / 1000.0
 raise 'TV feature wall layout exceeds the available wall width.' if tower_width < -0.001 || side_width < -0.001
 raise 'TV feature wall tower has no usable vertical space.' if tower_height <= 0.0
 width_check = 2.0 * wall_margin + side_width + side_gap + frame_width + side_gap + tower_width
-height_check = console_float + console_height + tower_height + cove_height
+height_check = console_float + console_height + tower_height
 raise 'TV feature wall widths do not add up to the wall width.' if (width_check - wall_width_mm / 1000.0).abs > 0.001
 raise 'TV feature wall heights do not add up to the wall height.' if (height_check - wall_height_mm / 1000.0).abs > 0.001
 panel_thickness = 25.0 * layout_scale / 1000.0
 console_width = console_y2 - console_y1
+shelf_depth = cfg[:SHELF_DEPTH] / 1000.0
+raise 'TV shelf must fit within the media console depth.' if shelf_depth > (3.68 - 3.285 - 0.020)
+tv_door_clearance = frame_y1 - entry_swing_end_y
+tv_window_clearance = window_w3_y1 - frame_y2
+raise 'TV shelf conflicts with the main entry door swing.' if tv_door_clearance < 0.100
+raise 'TV shelf conflicts with the kitchen window.' if tv_window_clearance < window_furniture_clearance
 add_box(tve, 3.225, wall_y1, 3.26, wall_y2, floor_z, wall_top_z, M_TV_TAUPE, 'Feature_Wall_Back_Panel')
+tv_wall_grp.set_attribute('TV_Layout', 'model', TV_MODEL)
+tv_wall_grp.set_attribute('TV_Layout', 'screen_diagonal_inches', cfg[:TV_DIAGONAL_IN])
+tv_wall_grp.set_attribute('TV_Layout', 'tv_body_dimensions_mm', "#{(tv_width * 1000).round} x #{(tv_height * 1000).round} x #{(tv_depth * 1000).round(1)}")
+tv_wall_grp.set_attribute('TV_Layout', 'screen_dimensions_mm', "#{(active_screen_width * 1000).round} x #{(active_screen_height * 1000).round}")
+tv_wall_grp.set_attribute('TV_Layout', 'shelf_dimensions_mm', "#{(frame_width * 1000).round} x #{(shelf_depth * 1000).round}")
+tv_wall_grp.set_attribute('TV_Layout', 'door_swing_clearance_mm', (tv_door_clearance * 1000).round)
+tv_wall_grp.set_attribute('TV_Layout', 'window_clearance_mm', (tv_window_clearance * 1000).round)
 
 console = tve.add_group
 console.name = 'Floating_Denim_Media_Console'
@@ -1908,70 +1930,38 @@ tv_center_z = floor_z + 1.20
 lower_top_z = tv_center_z + frame_height * 0.5
 lower_bottom_z = tv_center_z - frame_height * 0.5
 add_beveled_box(lower_panel.entities, 'Patagonia_Lower_Panel_Mitered_2mm_Eased', 3.265, frame_y1, 3.285, frame_y2, lower_bottom_z, lower_top_z, 0.002, M_PATAGONIA_STONE)
-tv_bezel = 0.010
+tv_bezel_y = (tv_width - active_screen_width) * 0.5
+tv_bezel_z = (tv_height - active_screen_height) * 0.5
 tv_outer_w = tv_width
 tv_outer_h = tv_height
 tv_y1 = wall_center_y - tv_outer_w * 0.5
 tv_y2 = wall_center_y + tv_outer_w * 0.5
 tv_z1 = tv_center_z - tv_outer_h * 0.5
 tv_z2 = tv_center_z + tv_outer_h * 0.5
-add_box(tve, 3.285, tv_y1, 3.305, tv_y2, tv_z1, tv_z2, M_METAL_BLK, 'OLED_TV_10mm_Bezel')
-add_box(tve, 3.306, tv_y1 + tv_bezel, 3.309, tv_y2 - tv_bezel, tv_z1 + tv_bezel, tv_z2 - tv_bezel, M_TV_SCREEN, 'OLED_TV_Glossy_Black_Screen')
-led_width = 0.010
-inner_x = 3.312
-add_box(tve, inner_x, tv_y1 - led_width, inner_x + 0.003, tv_y1, tv_z1, tv_z2, M_LED_WARM_WHITE, 'TV_Inner_Halo_Left')
-add_box(tve, inner_x, tv_y2, inner_x + 0.003, tv_y2 + led_width, tv_z1, tv_z2, M_LED_WARM_WHITE, 'TV_Inner_Halo_Right')
-add_box(tve, inner_x, tv_y1, inner_x + 0.003, tv_y2, tv_z1 - led_width, tv_z1, M_LED_WARM_WHITE, 'TV_Inner_Halo_Bottom')
-add_box(tve, inner_x, tv_y1, inner_x + 0.003, tv_y2, tv_z2, tv_z2 + led_width, M_LED_WARM_WHITE, 'TV_Inner_Halo_Top')
-outer_x = 3.270
-add_box(tve, outer_x, frame_y1 - led_width, outer_x + 0.003, frame_y1, lower_bottom_z, lower_top_z, M_LED_WARM, 'TV_Outer_Halo_Left_Setback')
-add_box(tve, outer_x, frame_y2, outer_x + 0.003, frame_y2 + led_width, lower_bottom_z, lower_top_z, M_LED_WARM, 'TV_Outer_Halo_Right_Setback')
-add_box(tve, outer_x, frame_y1, outer_x + 0.003, frame_y2, lower_bottom_z - led_width, lower_bottom_z, M_LED_WARM, 'TV_Outer_Halo_Bottom_Setback')
-add_box(tve, outer_x, frame_y1, outer_x + 0.003, frame_y2, lower_top_z, lower_top_z + led_width, M_LED_WARM, 'TV_Outer_Halo_Top_Setback')
-lower_panel.set_attribute('Stone', 'outer_halo_setback_mm', 15)
-
+tv_case_back_x = 3.285
+tv_screen_depth = 0.003 * layout_scale
+tv_case_front_x = tv_case_back_x + tv_depth - tv_screen_depth
+tv_front_x = tv_case_back_x + tv_depth
+add_box(tve, tv_case_back_x, tv_y1, tv_case_front_x, tv_y2, tv_z1, tv_z2, M_METAL_BLK, 'OLED_TV_Casing')
+add_box(tve, tv_case_front_x, tv_y1 + tv_bezel_y, tv_front_x, tv_y2 - tv_bezel_y, tv_z1 + tv_bezel_z, tv_z2 - tv_bezel_z, M_TV_SCREEN, 'OLED_TV_Glossy_Black_Screen')
 shelf_z = lower_top_z + 0.090 * layout_scale
-shelf_depth = cfg[:SHELF_DEPTH] * layout_scale / 1000.0
-add_box(tve, 3.285, frame_y1, 3.285 + shelf_depth, frame_y2, shelf_z, shelf_z + panel_thickness, M_TV_DENIM, 'Floating_Denim_Shelf')
-add_box(tve, 3.290, frame_y1, 3.294, frame_y2, shelf_z - 0.006, shelf_z - 0.002, M_LED_WARM_WHITE, 'Floating_Shelf_Underedge_LED')
-floating_decor_z = shelf_z + panel_thickness
-vase_y = frame_y1 + frame_width * 0.12
-cylinder_mm(tve, 'Floating_Shelf_White_Vase', 15.0 * layout_scale, 65.0 * layout_scale, M_FIXTURE, 18).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.315.m, vase_y.m, floating_decor_z.m)))
-book_y = frame_y1 + frame_width * 0.28
-add_box(tve, 3.305, book_y, 3.335, book_y + 0.045 * layout_scale, floating_decor_z, floating_decor_z + 0.012 * layout_scale, M_METAL_BLK, 'Floating_Shelf_Black_Book_1')
-add_box(tve, 3.305, book_y + 0.006, 3.335, book_y + 0.051 * layout_scale, floating_decor_z + 0.012 * layout_scale, floating_decor_z + 0.024 * layout_scale, M_METAL_BLK, 'Floating_Shelf_Black_Book_2')
-ring_y = wall_center_y
-ring_radius = 18.0 * layout_scale
-12.times do |ring_index|
-  a1 = 2.0 * Math::PI * ring_index / 12.0
-  a2 = 2.0 * Math::PI * (ring_index + 1) / 12.0
-  ring_z = floating_decor_z + 0.020 * layout_scale
-  p1 = [3340, (ring_y + ring_radius * Math.cos(a1) / 1000.0) * 1000.0, (ring_z + ring_radius * Math.sin(a1) / 1000.0) * 1000.0]
-  p2 = [3340, (ring_y + ring_radius * Math.cos(a2) / 1000.0) * 1000.0, (ring_z + ring_radius * Math.sin(a2) / 1000.0) * 1000.0]
-  cylinder_between_mm(tve, "Floating_Shelf_Gold_Ring_#{ring_index + 1}", p1, p2, 1.6 * layout_scale, M_TV_GOLD, 8)
-end
-pot_y = frame_y1 + frame_width * 0.83
-cylinder_mm(tve, 'Floating_Shelf_Denim_Plant_Pot', 12.0 * layout_scale, 26.0 * layout_scale, M_TV_DENIM, 16).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.315.m, pot_y.m, floating_decor_z.m)))
-add_rosette_plant(tve, 'Floating_Shelf_Small_Plant', 3.315, pot_y, floating_decor_z + 26.0 * layout_scale / 1000.0, 0.012 * layout_scale, 0.035 * layout_scale)
-upper_panel = tve.add_group
-upper_panel.name = 'Patagonia_Stone_Upper_Bookmatch'
-upper_panel.layer = L_STONE
-upper_panel.set_attribute('Stone', 'edge_detail', '45 degree miter; 2 mm eased edges')
-upper_bottom_z = shelf_z + panel_thickness + 0.090 * layout_scale
-upper_top_z = cove_under_z - 0.020
-add_beveled_box(upper_panel.entities, 'Patagonia_Upper_Panel_Mirrored_Mitered_2mm_Eased', 3.285, frame_y1, 3.305, frame_y2, upper_bottom_z, upper_top_z, 0.002, M_PATAGONIA_STONE_MIRROR)
-add_box(tve, 3.306, frame_y1 + 0.020, 3.309, frame_y2 - 0.020, upper_top_z - 0.030, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Top_Edge_LED')
-add_box(tve, 3.306, frame_y1 + 0.020, 3.309, frame_y1 + 0.030, upper_bottom_z + 0.020, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Left_Edge_LED')
-add_box(tve, 3.306, frame_y2 - 0.030, 3.309, frame_y2 - 0.020, upper_bottom_z + 0.020, upper_top_z - 0.020, M_LED_WARM, 'Upper_Stone_Right_Edge_LED')
+divider_shelf_thickness = 0.020 * layout_scale
+add_box(tve, 3.285, frame_y1, 3.285 + shelf_depth, frame_y2, shelf_z,
+        shelf_z + divider_shelf_thickness, M_WOOD_DARK,
+        'Floating_Minimal_Walnut_Divider_Shelf')
+living_ac_bottom_z = 2.56
+living_ac_clearance = living_ac_bottom_z - (shelf_z + divider_shelf_thickness)
+raise 'TV divider shelf conflicts with the living-room air conditioner.' if living_ac_clearance < 0.100
+tv_wall_grp.set_attribute('TV_Layout', 'air_conditioner_clearance_mm', (living_ac_clearance * 1000).round)
 
 if side_width > 0.0
-  add_box(tve, 3.265, left_panel_y1, 3.285, left_panel_y2, console_top_z, cove_under_z, M_TV_FLUTED, 'Left_Fluted_Panel_Back')
+  add_box(tve, 3.265, left_panel_y1, 3.285, left_panel_y2, console_top_z, wall_top_z, M_TV_FLUTED, 'Left_Fluted_Panel_Back')
   slat_width = 30.0 * layout_scale / 1000.0
   slat_depth = 12.0 * layout_scale / 1000.0
   slat_gap = (side_width - 10.0 * slat_width) / 9.0
   10.times do |slat_index|
     sy1 = left_panel_y1 + slat_index * (slat_width + slat_gap)
-    add_box(tve, 3.285, sy1, 3.285 + slat_depth, sy1 + slat_width, console_top_z, cove_under_z, M_TV_FLUTED, "Left_Fluted_Slat_#{slat_index + 1}")
+    add_box(tve, 3.285, sy1, 3.285 + slat_depth, sy1 + slat_width, console_top_z, wall_top_z, M_TV_FLUTED, "Left_Fluted_Slat_#{slat_index + 1}")
   end
   sconce_y = (left_panel_y1 + left_panel_y2) * 0.5
   sconce_z = floor_z + (wall_height_mm * 0.55) / 1000.0
@@ -1991,10 +1981,10 @@ if tower_width >= min_tower_width
   tower_e = tower.entities
   tower.layer = L_GF_FURN
   tower_back_mat = cfg[:TOWER_BACK] == :stone ? M_PATAGONIA_STONE : M_TV_DARK_BLUE
-  tower_back = add_box(tower_e, 3.285, tower_y1, 3.305, tower_y2, console_top_z, cove_under_z, tower_back_mat, 'Tower_Back_Panel')
+  tower_back = add_box(tower_e, 3.285, tower_y1, 3.305, tower_y2, console_top_z, wall_top_z, tower_back_mat, 'Tower_Back_Panel')
   tower_back.layer = L_STONE if cfg[:TOWER_BACK] == :stone
-  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y1 + panel_thickness, console_top_z, cove_under_z, M_TV_DENIM, 'Tower_Left_Side')
-  add_box(tower_e, 3.285, tower_y2 - panel_thickness, 3.43, tower_y2, console_top_z, cove_under_z, M_TV_DENIM, 'Tower_Right_Side')
+  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y1 + panel_thickness, console_top_z, wall_top_z, M_TV_DENIM, 'Tower_Left_Side')
+  add_box(tower_e, 3.285, tower_y2 - panel_thickness, 3.43, tower_y2, console_top_z, wall_top_z, M_TV_DENIM, 'Tower_Right_Side')
   target_tier_clear = 0.350
   tier_count = [(tower_height / target_tier_clear).round, 3].max
   tier_height = tower_height / tier_count.to_f
@@ -2027,43 +2017,26 @@ if tower_width >= min_tower_width
       cylinder_mm(tower_e, "Tower_Brass_Ornament_#{tier_index}", 18.0 * layout_scale, 30.0 * layout_scale, M_TV_GOLD, 16).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.34.m, tower_y2 - panel_thickness - 0.030, decor_base.m)))
     end
   end
-  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y2, cove_under_z - panel_thickness, cove_under_z, M_TV_DENIM, 'Tower_Top_Cap')
+  add_box(tower_e, 3.285, tower_y1, 3.43, tower_y2, wall_top_z - panel_thickness, wall_top_z, M_TV_DENIM, 'Tower_Top_Cap')
   tower.set_attribute('Shelving', 'tier_count', tier_count)
   tower.set_attribute('Shelving', 'clear_tier_height_mm', (clear_tier_height * 1000.0).round)
 else
-  puts "WARNING: Right shelving tower skipped; remaining width #{(tower_width * 1000.0).round} mm is below the scaled minimum #{(min_tower_width * 1000.0).round} mm."
+  if tower_width > 0.050
+    puts "WARNING: Right shelving tower skipped; remaining width #{(tower_width * 1000.0).round} mm is below the scaled minimum #{(min_tower_width * 1000.0).round} mm."
+  end
 end
 
-add_box(tve, 3.225, wall_y1, 3.90, wall_y2, wall_top_z, wall_top_z + 0.018, M_TV_WHITE, 'Matte_White_Ceiling_Patch')
-3.times do |light_index|
-  light_y = wall_y1 + wall_width_mm / 4000.0 + light_index * wall_width_mm / 3000.0
-  cylinder_mm(tve, "Feature_Wall_Recessed_Downlight_#{light_index + 1}", 22.0 * layout_scale, 8.0, M_LED_WARM_WHITE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.52.m, light_y.m, (wall_top_z - 0.010).m)))
+if tower_width >= min_tower_width
+  plant_y = tower_y1 + tower_width * 0.55
+  cylinder_mm(tve, 'Feature_Wall_Tropical_Plant_White_Pot', 72.0, 145.0, M_FIXTURE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.74.m, plant_y.m, floor_z.m)))
+  add_rosette_plant(tve, 'Feature_Wall_Tropical_Plant', 3.74, plant_y, floor_z + 0.145, 0.16, 0.62)
 end
-add_box(tve, 3.225, wall_y1, 3.345, wall_y2, cove_under_z, wall_top_z, M_TV_WHITE, 'Warm_Ceiling_Cove_Fascia')
-add_box(tve, 3.340, wall_y1 + wall_margin, 3.345, wall_y2 - wall_margin, cove_under_z + 0.008, cove_under_z + 0.014, M_LED_WARM, 'Warm_Ceiling_Cove_LED')
-
-plant_y = tower_y1 + tower_width * 0.55
-cylinder_mm(tve, 'Feature_Wall_Tropical_Plant_White_Pot', 72.0, 145.0, M_FIXTURE, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.74.m, plant_y.m, floor_z.m)))
-add_rosette_plant(tve, 'Feature_Wall_Tropical_Plant', 3.74, plant_y, floor_z + 0.145, 0.16, 0.62)
 add_box(tve, 3.29, wall_y2 + 0.005, 3.34, wall_y2 + 0.030, floor_z, wall_top_z, M_TV_CURTAIN, 'Dark_Grey_Curtain_Edge')
 
-console_decor_z = console_top_z + 0.020
-vase_y = console_y1 + console_width * 0.10
-cylinder_mm(ce, 'Console_Top_Denim_Ribbed_Vase', 28.0 * layout_scale, 78.0 * layout_scale, M_TV_DENIM, 18).transform!(Geom::Transformation.translation(Geom::Vector3d.new(3.50.m, vase_y.m, console_decor_z.m)))
-4.times do |flower_index|
-  cylinder_between_mm(ce, "Console_Vase_Dried_Flower_#{flower_index + 1}", [3500, vase_y * 1000.0, console_decor_z * 1000.0 + 78.0 * layout_scale], [3500 + (flower_index - 2) * 8, vase_y * 1000.0 + (flower_index - 2) * 7, console_decor_z * 1000.0 + 145.0 * layout_scale], 1.3 * layout_scale, M_FIXTURE, 8)
-end
-figure_y = console_y1 + console_width * 0.34
-cylinder_between_mm(ce, 'Console_Top_Gold_Figure_Eight_1', [3500, figure_y * 1000.0 - 18, console_decor_z * 1000.0 + 30], [3500, figure_y * 1000.0 + 18, console_decor_z * 1000.0 + 30], 2.5 * layout_scale, M_TV_GOLD, 10)
-cylinder_between_mm(ce, 'Console_Top_Gold_Figure_Eight_2', [3500, figure_y * 1000.0 + 18, console_decor_z * 1000.0 + 30], [3500, figure_y * 1000.0 - 18, console_decor_z * 1000.0 + 30], 2.5 * layout_scale, M_TV_GOLD, 10)
-photo_y = console_y1 + console_width * 0.66
-add_box(ce, 3.48, photo_y - 0.035 * layout_scale, 3.49, photo_y + 0.035 * layout_scale, console_decor_z, console_decor_z + 0.080 * layout_scale, M_TV_GOLD, 'Console_Top_Gold_Framed_Photo')
-lantern_y = console_y1 + console_width * 0.90
-add_box(ce, 3.47, lantern_y - 0.035 * layout_scale, 3.53, lantern_y + 0.035 * layout_scale, console_decor_z, console_decor_z + 0.105 * layout_scale, M_TV_GOLD, 'Console_Top_Brass_Lantern')
-puts "TV FEATURE WALL | wall=#{wall_width_mm.round} x #{wall_height_mm.round} mm | scale=#{layout_scale.round(3)} | frame=#{(frame_width * 1000).round} x #{(frame_height * 1000).round} mm | TV=#{(tv_width * 1000).round} x #{(tv_height * 1000).round} mm"
-puts "TV FEATURE WALL | console=#{(console_width * 1000).round} mm wide x #{(console_height * 1000).round} mm high | tower=#{(tower_width * 1000).round} mm wide x #{(tower_height * 1000).round} mm high | tiers=#{defined?(tier_count) ? tier_count : 0} | equal width/height checks passed"
+puts "TV FEATURE WALL | wall=#{wall_width_mm.round} x #{wall_height_mm.round} mm | scale=#{layout_scale.round(3)} | frame=#{(frame_width * 1000).round} x #{(frame_height * 1000).round} mm | TV=#{TV_MODEL} #{cfg[:TV_DIAGONAL_IN]}in (body #{(tv_width * 1000).round} x #{(tv_height * 1000).round} x #{(tv_depth * 1000).round(1)} mm)"
+puts "TV FEATURE WALL | console=#{(console_width * 1000).round} x #{(console_height * 1000).round} mm | shelf=#{(frame_width * 1000).round} x #{(shelf_depth * 1000).round} mm | door/window clearances=#{(tv_door_clearance * 1000).round}/#{(tv_window_clearance * 1000).round} mm | tower=#{(tower_width * 1000).round} mm | equal width/height checks passed"
 puts "Supply textures: Patagonia stone=#{bmp_patagonia}; floor marble=#{bmp_marble}; fluted wood=#{bmp_fluted_wood}"
-add_split_ac_unit(le, 3.260, tv_center_y, 2.56, 90)
+add_split_ac_unit(le, 3.260, tv_center_y, living_ac_bottom_z, 90)
 din_grp = gffe_furn.add_group; din_grp.name = 'Room_GF_Dining_and_Kitchen'; de = din_grp.entities
 add_box(de, 4.88, 5.05, 5.38, 5.55, 0.02, 0.05, M_BRASS)
 add_box(de, 4.96, 5.12, 5.30, 5.48, 0.05, 0.71, M_WOOD_DARK)
@@ -2096,9 +2069,6 @@ fridge_swing = 0.700
 return_x1 = 3.225
 return_x2 = fx2 - 0.015
 return_y1 = fridge_y2 + 0.075
-window_w3_y1 = 4.450
-window_w3_y2 = 5.850
-window_furniture_clearance = 0.250
 kitchen_grp.set_attribute('Kitchen_Layout', 'guide', 'West-wall refrigerator facing east; 600 x 1050mm L-shaped sink counter; aligned L-shaped upper cabinets')
 kitchen_grp.set_attribute('Kitchen_Layout', 'landing_fridge_to_sink_mm', ((sx1 - fridge_front_x - 0.030) * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'landing_sink_to_hob_mm', ((hx1 - sx2) * 1000).round)
@@ -2365,9 +2335,12 @@ low_profile = [[x0, zf], [x_land, zf], [x_land, zf + lower_treads * riser - trea
 lower_treads.downto(1) do |i|
   x_end = x0 + i * lower_going
   low_profile << [x_end, zf + i * riser - tread_t]
-  low_profile << [x_end, zf + (i - 1) * riser - tread_t]
+  if i == 1
+    low_profile << [x0, zf + i * riser - tread_t]
+  else
+    low_profile << [x_end, zf + (i - 1) * riser - tread_t]
+  end
 end
-low_profile << [x0, zf - tread_t]
 add_xz_extrusion(se_st, 'Lower_Flight_Closed_Carriage', y_lo1, y_n, low_profile, M_WALL_EXT)
 lower_treads.times do |idx|
   i = idx + 1; z_top = zf + i * riser; x_r = x0 + (i - 1) * lower_going; x_n = x0 + i * lower_going
@@ -2792,8 +2765,9 @@ tv_camera_distance = 1.25 * wall_width_mm / 1000.0
 tv_camera_eye = Geom::Point3d.new((3.225 + tv_camera_distance).m, wall_center_y.m, (floor_z + 1.20).m)
 tv_camera_target = Geom::Point3d.new(3.225.m, wall_center_y.m, (floor_z + 1.20).m)
 create_scene_tab(model, '15_TV_Feature_Wall', tv_camera_eye, tv_camera_target, 50.0, all_layers, [L_SUV, L_ROOF])
-model.pages.selected_page = model.pages['15_TV_Feature_Wall'] if model.pages['15_TV_Feature_Wall']
+model.options['PageOptions']['ShowTransition'] = false
 model.active_view.zoom_extents if model.active_view
+model.pages.selected_page = model.pages['15_TV_Feature_Wall'] if model.pages['15_TV_Feature_Wall']
 model.active_view.refresh if model.active_view
 # #region agent log
 begin
