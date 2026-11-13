@@ -1287,7 +1287,7 @@ gf_int_grp = gfe.add_group; gf_int_grp.name = 'GF_Rear_and_Interior_Walls'; gf_i
 gf_int_shell = gfie.add_group; gf_int_shell.name = 'GF_Interior_Wall_Shell'
 gf_int_ops = gfie.add_group; gf_int_ops.name = 'GF_Interior_Doors_Windows'
 gf_int_parts = [
-build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [4.30, 5.70], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
+build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [4.45, 5.85], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E6', 3.075, 8.0, 9.85, 8.0, 0.15, 0.0, 3.0, 3.0, [
 { id: 'W1', type: :window, r: [3.90, 5.40], z_sill: 0.945, z_head: 1.640, in_dir: -1, curtains: false },
 { id: 'KITCHEN_EXHAUST_VENT', type: :vent, r: [5.53, 5.88], z_sill: 2.41, z_head: 2.65 },
@@ -1575,8 +1575,8 @@ tapered_leg_at(le, "Side_Table_Leg_#{i + 1}", 4.08 + 0.14 * Math.cos(a), 3.30 + 
 end
 add_tabletop_plant(le, 4.08, 3.30, 0.479)
 entry_swing_end_y = 2.0 + 0.95
-brown_tv_panel_y1 = 2.55
-brown_tv_panel_y2 = 4.15
+brown_tv_panel_y1 = 2.60
+brown_tv_panel_y2 = 4.20
 tv_center_y = (brown_tv_panel_y1 + brown_tv_panel_y2) * 0.5
 tv_y1 = tv_center_y - 0.430
 tv_y2 = tv_center_y + 0.430
@@ -1588,7 +1588,7 @@ entry_clearances = [entry_console_y1, entry_side_table_y1].map { |y| y - entry_s
 raise 'Main entry door swing conflicts with the living-room furnishings.' if entry_clearances.min < 0.10
 tv_entry_x_clearance = 3.35 - 3.34
 raise 'TV overlaps the main entry doorway.' if tv_entry_x_clearance < 0.01
-add_box(le, 3.225, 2.55, 3.26, 4.15, 0.02, 2.85, M_WOOD_DARK)
+add_box(le, 3.225, brown_tv_panel_y1, 3.26, brown_tv_panel_y2, 0.02, 2.85, M_WOOD_DARK)
 add_box(le, 3.26, entry_console_y1, 3.68, entry_console_y2, 0.18, 0.46, M_WOOD_DARK)
 add_box(le, 3.26, entry_console_y1, 3.70, entry_console_y2, 0.46, 0.49, M_MARBLE_WHT)
 add_box(le, 3.30, tv_y1, 3.34, tv_y2, 0.88, 1.52, M_METAL_BLK, 'OLED_TV')
@@ -1625,7 +1625,9 @@ fridge_swing = 0.700
 return_x1 = 3.225
 return_x2 = fx2 - 0.015
 return_y1 = fridge_y2 + 0.075
-window_w3_y2 = 5.700
+window_w3_y1 = 4.450
+window_w3_y2 = 5.850
+window_furniture_clearance = 0.250
 kitchen_grp.set_attribute('Kitchen_Layout', 'guide', 'West-wall refrigerator facing east; 600 x 1050mm L-shaped sink counter; aligned L-shaped upper cabinets')
 kitchen_grp.set_attribute('Kitchen_Layout', 'landing_fridge_to_sink_mm', ((sx1 - fridge_front_x - 0.030) * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'landing_sink_to_hob_mm', ((hx1 - sx2) * 1000).round)
@@ -1634,10 +1636,13 @@ kitchen_grp.set_attribute('Kitchen_Layout', 'counter_depth_mm', (k_depth * 1000)
 cabinet_door_hinge_x = (p1x1 + p1x2) * 0.5 - 0.015
 cabinet_door_clearance = cabinet_door_hinge_x - fridge_front_x
 fridge_window_clearance = fridge_y1 - window_w3_y2
+tv_panel_window_clearance = window_w3_y1 - brown_tv_panel_y2
 return_fridge_clearance = return_y1 - fridge_y2
 fridge_return_swing_clearance = fridge_front_x - return_x2
 raise 'Refrigerator blocks the adjacent cabinet door opening.' if cabinet_door_clearance < 0.050
-raise 'Refrigerator is too close to the shifted kitchen window.' if fridge_window_clearance < 0.300
+raise 'Refrigerator is too close to the shifted kitchen window.' if fridge_window_clearance < window_furniture_clearance
+raise 'TV panel is too close to the shifted kitchen window.' if tv_panel_window_clearance < window_furniture_clearance
+raise 'TV panel and shifted kitchen window must have equal clearances.' if (tv_panel_window_clearance - fridge_window_clearance).abs > 0.001
 raise 'L-counter return conflicts with the refrigerator.' if return_fridge_clearance < 0.050
 raise 'L-counter return blocks the refrigerator door swing.' if fridge_return_swing_clearance < 0.050
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_back_wall', 'west')
@@ -1646,6 +1651,7 @@ kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_dimensions_mm', '700 w
 kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_hinge_side', 'east; opens away from refrigerator')
 kitchen_grp.set_attribute('Kitchen_Layout', 'adjacent_cabinet_door_clearance_mm', (cabinet_door_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'window_W3_clearance_mm', (fridge_window_clearance * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'tv_panel_to_window_clearance_mm', (tv_panel_window_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_to_l_counter_clearance_mm', (return_fridge_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_swing_to_l_counter_clearance_mm', (fridge_return_swing_clearance * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_hinge_side', 'north')
@@ -2014,9 +2020,48 @@ cylinder_between_mm(
   M_WOOD_DARK,
   24
 )
-add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', guard_x, 5.735, 6.430, z_ff2, guard_top_z)
-add_box(se_st, guard_x - 0.030, 5.735, guard_x + 0.030, 5.775, z_ff2, guard_top_z, M_METAL_BLK, 'Stair_2F_Guard_Start_Anchor')
-add_box(se_st, guard_x - 0.030, 6.410, guard_x + 0.030, 6.450, z_ff2, guard_top_z, M_METAL_BLK, 'Stair_2F_Guard_End_Anchor')
+landing_guard = se_st.add_group
+landing_guard.name = 'Stair_2F_North_Well_Guard'
+landing_guard_entities = landing_guard.entities
+guard_y1 = 5.735
+guard_y2 = 6.430
+guard_glass_y1 = guard_y1 + 0.040
+guard_glass_y2 = guard_y2 - 0.040
+guard_glass_bottom = z_ff2 + 0.060
+guard_cap_bottom = guard_top_z - 0.040
+add_box(
+  landing_guard_entities,
+  guard_x - 0.010,
+  guard_glass_y1,
+  guard_x + 0.010,
+  guard_glass_y2,
+  guard_glass_bottom,
+  guard_cap_bottom,
+  M_RAIL_GLASS,
+  'Landing_Guard_Clear_Glass'
+)
+add_box(
+  landing_guard_entities,
+  guard_x - 0.018,
+  guard_y1,
+  guard_x + 0.018,
+  guard_y2,
+  z_ff2,
+  guard_glass_bottom,
+  M_METAL_BLK,
+  'Landing_Guard_Continuous_Base_Shoe'
+)
+add_box(
+  landing_guard_entities,
+  guard_x - 0.025,
+  guard_y1,
+  guard_x + 0.025,
+  guard_y2,
+  guard_cap_bottom,
+  guard_top_z,
+  M_WOOD_DARK,
+  'Landing_Guard_Continuous_Top_Cap'
+)
 sf_furn_grp = ents.add_group; sf_furn_grp.name = '08_2F_Interior_Furniture_by_Room'; sf_furn_grp.layer = L_2F_FURN; sffe_furn = sf_furn_grp.entities
 build_luxury_bedroom_suite(sffe_furn, 'Room_2F_Bedroom_2', 3.02, :east, 9.85, 2.05, 3.55, [7.88, 4.25, 9.85, 4.85], :south)
 bed2_ac = add_split_ac_unit(sffe_furn, 7.065, 2.94, 5.25, 90)
