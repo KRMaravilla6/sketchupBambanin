@@ -1913,36 +1913,110 @@ upper_treads.times do |idx|
   add_box(se_st, x_w, y_s + 0.012, x_w + 0.016, y_up2 - 0.012, z_top - 0.006, z_top - 0.001, M_BRASS)
 end
 add_box(se_st, x_floor, y_s, x_floor + 0.018, y_up2, z_land + upper_treads * riser, z_ff2 - tread_t, M_WALL_EXT, 'Upper_Flight_Final_Riser')
-lower_rail_y = y_n - 0.065
+lower_rail_y = y_n + 0.020
 lower_inner_rail_y = y_lo1 + 0.065
-upper_rail_y = y_s + 0.065
+upper_rail_y = y_s - 0.020
 upper_inner_rail_y = y_up2 - 0.065
-[[lower_rail_y, 'Outer'], [lower_inner_rail_y, 'Inner']].each do |rail_y, side|
-  cylinder_between_mm(se_st, "Handrail_Lower_#{side}", [x0 * 1000, rail_y * 1000, (zf + rail_h) * 1000], [x_land * 1000, rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
+glass_bottom_clearance = 0.035
+glass_top_clearance = handrail_radius - 0.002
+glass_rail_height = rail_h - glass_bottom_clearance - glass_top_clearance
+lower_glass_profile = [
+  [x0, zf + glass_bottom_clearance],
+  [x_land, z_land + glass_bottom_clearance],
+  [x_land, z_land + glass_rail_height + glass_bottom_clearance],
+  [x0, zf + glass_rail_height + glass_bottom_clearance]
+]
+upper_glass_profile = [
+  [x_land, z_land + glass_bottom_clearance],
+  [x_floor, z_ff2 + glass_bottom_clearance],
+  [x_floor, z_ff2 + glass_rail_height + glass_bottom_clearance],
+  [x_land, z_land + glass_rail_height + glass_bottom_clearance]
+]
+glass_thickness = 0.012
+add_xz_extrusion(se_st, 'Stair_Glass_Lower_Outer', lower_rail_y - glass_thickness / 2.0, lower_rail_y + glass_thickness / 2.0, lower_glass_profile, M_RAIL_GLASS)
+add_xz_extrusion(se_st, 'Stair_Glass_Upper_Outer', upper_rail_y - glass_thickness / 2.0, upper_rail_y + glass_thickness / 2.0, upper_glass_profile, M_RAIL_GLASS)
+glass_shoe_height = glass_bottom_clearance
+glass_shoe_depth = 0.024
+lower_glass_shoe = [
+  [x0, zf],
+  [x_land, z_land],
+  [x_land, z_land + glass_shoe_height],
+  [x0, zf + glass_shoe_height]
+]
+upper_glass_shoe = [
+  [x_land, z_land],
+  [x_floor, z_ff2],
+  [x_floor, z_ff2 + glass_shoe_height],
+  [x_land, z_land + glass_shoe_height]
+]
+add_xz_extrusion(se_st, 'Stair_Glass_Lower_Outer_Base_Shoe', lower_rail_y - glass_shoe_depth / 2.0, lower_rail_y + glass_shoe_depth / 2.0, lower_glass_shoe, M_METAL_BLK)
+add_xz_extrusion(se_st, 'Stair_Glass_Upper_Outer_Base_Shoe', upper_rail_y - glass_shoe_depth / 2.0, upper_rail_y + glass_shoe_depth / 2.0, upper_glass_shoe, M_METAL_BLK)
+[
+  ['Handrail_Lower_Outer', x0, lower_rail_y, zf, x_land, z_land],
+  ['Handrail_Lower_Inner', x0, lower_inner_rail_y, zf, x_land, z_land],
+  ['Handrail_Upper_Outer', x_floor, upper_rail_y, z_ff2, x_land, z_land],
+  ['Handrail_Upper_Inner', x_floor, upper_inner_rail_y, z_ff2, x_land, z_land]
+].each do |name, x_start, rail_y, z_start, x_end, z_end|
+  cylinder_between_mm(
+    se_st,
+    name,
+    [x_start * 1000.0, rail_y * 1000.0, (z_start + rail_h) * 1000.0],
+    [x_end * 1000.0, rail_y * 1000.0, (z_end + rail_h) * 1000.0],
+    handrail_radius * 1000.0,
+    M_WOOD_DARK,
+    24
+  )
 end
-[[upper_rail_y, 'Outer'], [upper_inner_rail_y, 'Inner']].each do |rail_y, side|
-  cylinder_between_mm(se_st, "Handrail_Upper_#{side}", [x_floor * 1000, rail_y * 1000, (z_ff2 + rail_h) * 1000], [x_land * 1000, rail_y * 1000, (z_land + rail_h) * 1000], handrail_radius * 1000, M_WOOD_DARK, 24)
-end
-[7.05, 7.86, 8.77, 9.08].each_with_index do |bx, i|
-  bz = z_low_nosing.call(bx) + rail_h
-  cylinder_between_mm(se_st, "Stair_Lower_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, lower_rail_y * 1000, bz * 1000], [bx * 1000, 6450, bz * 1000], 9, M_CHROME, 12)
-end
-[8.02, 8.42, 8.82].each_with_index do |bx, i|
-  bz = z_up_nosing.call(bx) + rail_h
-  cylinder_between_mm(se_st, "Stair_Upper_Handrail_Wall_Bracket_#{i + 1}", [bx * 1000, upper_rail_y * 1000, bz * 1000], [bx * 1000, 4950, bz * 1000], 9, M_CHROME, 12)
-end
+cylinder_between_mm(
+  se_st,
+  'Handrail_Inner_Landing_Return',
+  [x_land * 1000.0, lower_inner_rail_y * 1000.0, (z_land + rail_h) * 1000.0],
+  [x_land * 1000.0, upper_inner_rail_y * 1000.0, (z_land + rail_h) * 1000.0],
+  handrail_radius * 1000.0,
+  M_WOOD_DARK,
+  24
+)
 (1..lower_treads).step(2).each do |i|
   bx = x0 + (i - 0.5) * lower_going
-  bz = zf + i * riser
-  cylinder_between_mm(se_st, "Stair_Lower_Inner_Baluster_#{i}", [bx * 1000, lower_inner_rail_y * 1000, bz * 1000], [bx * 1000, lower_inner_rail_y * 1000, (z_low_nosing.call(bx) + rail_h) * 1000], 12, M_METAL_BLK, 12)
+  lower_tread_z = zf + i * riser
+  cylinder_between_mm(
+    se_st,
+    "Stair_Lower_Inner_Baluster_#{i}",
+    [bx * 1000.0, lower_inner_rail_y * 1000.0, lower_tread_z * 1000.0],
+    [bx * 1000.0, lower_inner_rail_y * 1000.0, (z_low_nosing.call(bx) + rail_h) * 1000.0],
+    12,
+    M_METAL_BLK,
+    12
+  )
 end
 upper_treads.times do |idx|
-  j = idx + 1; bx = x_land - (j - 0.5) * upper_going; bz = z_land + j * riser
-  cylinder_between_mm(se_st, "Stair_Upper_Inner_Baluster_#{j}", [bx * 1000, upper_inner_rail_y * 1000, bz * 1000], [bx * 1000, upper_inner_rail_y * 1000, (z_up_nosing.call(bx) + rail_h) * 1000], 12, M_METAL_BLK, 12)
+  j = idx + 1
+  bx = x_land - (j - 0.5) * upper_going
+  upper_tread_z = z_land + j * riser
+  cylinder_between_mm(
+    se_st,
+    "Stair_Upper_Inner_Baluster_#{j}",
+    [bx * 1000.0, upper_inner_rail_y * 1000.0, upper_tread_z * 1000.0],
+    [bx * 1000.0, upper_inner_rail_y * 1000.0, (z_up_nosing.call(bx) + rail_h) * 1000.0],
+    12,
+    M_METAL_BLK,
+    12
+  )
 end
-add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', 7.008, 5.735, 6.430, z_ff2, z_ff2 + guard_h)
-add_box(se_st, 6.975, 5.735, 7.04, 5.775, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_Start_Anchor')
-add_box(se_st, 6.975, 6.410, 7.04, 6.450, z_ff2, z_ff2 + guard_h, M_METAL_BLK, 'Stair_2F_Guard_End_Anchor')
+guard_x = 7.200
+guard_top_z = z_ff2 + guard_h
+cylinder_between_mm(
+  se_st,
+  'Handrail_Upper_Landing_To_Glass_Guard_Connector',
+  [x_floor * 1000.0, upper_inner_rail_y * 1000.0, (z_ff2 + rail_h) * 1000.0],
+  [guard_x * 1000.0, 5.765 * 1000.0, (guard_top_z - 0.021) * 1000.0],
+  handrail_radius * 1000.0,
+  M_WOOD_DARK,
+  24
+)
+add_hyper_realistic_interior_glass_railing_y(se_st, 'Stair_2F_North_Well_Guard', guard_x, 5.735, 6.430, z_ff2, guard_top_z)
+add_box(se_st, guard_x - 0.030, 5.735, guard_x + 0.030, 5.775, z_ff2, guard_top_z, M_METAL_BLK, 'Stair_2F_Guard_Start_Anchor')
+add_box(se_st, guard_x - 0.030, 6.410, guard_x + 0.030, 6.450, z_ff2, guard_top_z, M_METAL_BLK, 'Stair_2F_Guard_End_Anchor')
 sf_furn_grp = ents.add_group; sf_furn_grp.name = '08_2F_Interior_Furniture_by_Room'; sf_furn_grp.layer = L_2F_FURN; sffe_furn = sf_furn_grp.entities
 build_luxury_bedroom_suite(sffe_furn, 'Room_2F_Bedroom_2', 3.02, :east, 9.85, 2.05, 3.55, [7.88, 4.25, 9.85, 4.85], :south)
 bed2_ac = add_split_ac_unit(sffe_furn, 7.065, 2.94, 5.25, 90)
