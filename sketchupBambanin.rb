@@ -367,6 +367,54 @@ grp.entities.grep(Sketchup::Face).each { |f| face_mat(f, mat) }
 grp.material = mat if mat
 grp
 end
+def add_upper_cabinet_door_with_curved_grip(parent_ents, name, x1, y1, x2, y2, z1, z2, face_side, mat)
+raise ArgumentError, "Unsupported cabinet door face: #{face_side}" unless [:south, :east].include?(face_side)
+grp = parent_ents.add_group
+grp.name = name if name
+grip_rise = [0.010, z2 - z1].min
+curve_steps = 12
+if face_side == :south
+profile = [[y1, z2], [y2, z2], [y2, z1 + grip_rise]]
+(curve_steps - 1).downto(1) do |step|
+t = step.to_f / curve_steps
+curve = t * t * (3.0 - 2.0 * t)
+profile << [y1 + (y2 - y1) * t, z1 + grip_rise * curve]
+end
+profile << [y1, z1]
+points = profile.map { |y, z| Geom::Point3d.new(x1.m, y.m, z.m) }
+face = grp.entities.add_face(points)
+if face
+face.reverse! if face.normal.x < 0
+face_mat(face, mat)
+face.pushpull((x2 - x1).m)
+end
+extrusion_axis = :x
+else
+profile = [[x2, z2], [x1, z2], [x1, z1 + grip_rise]]
+(curve_steps - 1).downto(1) do |step|
+t = step.to_f / curve_steps
+curve = t * t * (3.0 - 2.0 * t)
+profile << [x2 + (x1 - x2) * t, z1 + grip_rise * curve]
+end
+profile << [x2, z1]
+points = profile.map { |x, z| Geom::Point3d.new(x.m, y1.m, z.m) }
+face = grp.entities.add_face(points)
+if face
+face.reverse! if face.normal.y < 0
+face_mat(face, mat)
+face.pushpull((y2 - y1).m)
+end
+extrusion_axis = :y
+end
+grp.entities.grep(Sketchup::Face).each { |item| face_mat(item, mat) }
+grp.entities.grep(Sketchup::Edge).each do |edge|
+axis_length = extrusion_axis == :x ? (edge.start.position.x - edge.end.position.x).abs : (edge.start.position.y - edge.end.position.y).abs
+edge.soft = true if axis_length > mm(1.0)
+edge.smooth = true if axis_length > mm(1.0)
+end
+grp.material = mat if mat
+grp
+end
 def add_beveled_box(parent_ents, name, x1, y1, x2, y2, z1, z2, bevel, mat)
   b = [bevel.to_f, [(x2 - x1), (y2 - y1), (z2 - z1)].min * 0.2].min
   raise "Invalid bevel size for #{name}." if b <= 0.0
@@ -2061,6 +2109,7 @@ countertop_top_z = 0.855
 countertop_bottom_z = countertop_top_z - 0.045
 sink_rim_top_z = 0.875
 upper_cabinet_bottom_z = countertop_top_z + 0.575
+kitchen_cabinet_door_bottom_z = upper_cabinet_bottom_z - 0.010
 kitchen_ceiling_underside_z = 2.85
 kitchen_cabinet_top_z = kitchen_ceiling_underside_z - 0.30
 kitchen_cabinet_door_top_z = kitchen_cabinet_top_z - 0.018
@@ -2069,6 +2118,8 @@ cooktop_original_top_z = 0.913
 hood_original_bottom_z = 1.600
 hood_clearance_m = 0.650
 hood_clearance_adjustment = countertop_top_z + hood_clearance_m - hood_original_bottom_z
+hood_cabinet_bottom_z = 1.685
+hood_cabinet_door_bottom_z = hood_cabinet_bottom_z - 0.010
 hood_cabinet_top_z = kitchen_cabinet_top_z - hood_clearance_adjustment
 hood_cabinet_door_top_z = kitchen_cabinet_door_top_z - hood_clearance_adjustment
 fx1 = 3.225; fx2 = 3.825
@@ -2136,11 +2187,8 @@ fridge_door_mid_y = (fridge_y1 + fridge_y2) * 0.5
 fridge_door_gap = 0.020
 fridge_door_lower_y2 = fridge_door_mid_y - fridge_door_gap * 0.5
 fridge_door_upper_y1 = fridge_door_mid_y + fridge_door_gap * 0.5
-add_box(re_k, fx2, fridge_y1 + 0.010, fx2 + 0.025, fridge_door_lower_y2, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door_1')
-add_box(re_k, fx2, fridge_door_upper_y1, fx2 + 0.025, fridge_y2 - 0.010, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door_2')
-[(fridge_y1 + 0.010 + fridge_door_lower_y2) * 0.5, (fridge_door_upper_y1 + fridge_y2 - 0.010) * 0.5].each_with_index do |handle_y, i|
-add_box(re_k, fx2 + 0.025, handle_y - 0.025, fx2 + 0.050, handle_y + 0.025, 2.20, 2.24, M_BRASS, "Refrigerator_Overhead_Cabinet_Handle_#{i + 1}")
-end
+add_upper_cabinet_door_with_curved_grip(re_k, 'Refrigerator_Overhead_Cabinet_Door_1', fx2, fridge_y1 + 0.010, fx2 + 0.025, fridge_door_lower_y2, fridge_overhead_z1 - 0.010, fridge_overhead_z2 - 0.020, :east, M_GREIGE_CAB)
+add_upper_cabinet_door_with_curved_grip(re_k, 'Refrigerator_Overhead_Cabinet_Door_2', fx2, fridge_door_upper_y1, fx2 + 0.025, fridge_y2 - 0.010, fridge_overhead_z1 - 0.010, fridge_overhead_z2 - 0.020, :east, M_GREIGE_CAB)
 fridge_swing_group = ke.add_group
 fridge_swing_group.name = 'Refrigerator_Door_Swing_700mm_Clearance'
 swing_points = [Geom::Point3d.new(fridge_front_x.m, fridge_y2.m, 0.025.m)]
@@ -2173,13 +2221,11 @@ upper_fridge_joint_height = [fridge_overhead_z2, kitchen_cabinet_top_z].min - [f
 raise 'Over-fridge cabinet does not meet the L-shaped upper return.' if (upper_return_start_y - fridge_y2).abs > 0.001 || upper_fridge_joint_width <= 0.0 || upper_fridge_joint_height <= 0.0
 kitchen_grp.set_attribute('Kitchen_Layout', 'over_fridge_upper_cabinet_joint', "flush-front L joint with shared #{(upper_fridge_joint_width * 1000).round}mm width and #{(upper_fridge_joint_height * 1000).round}mm height")
 add_box(ke, return_x1, upper_return_start_y, fx2, upper_return_end_y, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB, 'L_Upper_West_Return_Cabinet')
-add_box(ke, fx2, upper_return_start_y + 0.020, fx2 + 0.025, upper_return_mid_y - 0.020, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_West_Return_Door_1')
-add_box(ke, fx2, upper_return_mid_y + 0.020, fx2 + 0.025, upper_return_end_y - 0.050, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_West_Return_Door_2')
-add_box(ke, fx2 + 0.025, upper_return_start_y + 0.135, fx2 + 0.050, upper_return_start_y + 0.185, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_1')
-add_box(ke, fx2 + 0.025, upper_return_mid_y + 0.100, fx2 + 0.050, upper_return_mid_y + 0.150, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_2')
+add_upper_cabinet_door_with_curved_grip(ke, 'L_Upper_West_Return_Door_1', fx2, upper_return_start_y + 0.020, fx2 + 0.025, upper_return_mid_y - 0.020, kitchen_cabinet_door_bottom_z, kitchen_cabinet_door_top_z, :east, M_GREIGE_CAB)
+add_upper_cabinet_door_with_curved_grip(ke, 'L_Upper_West_Return_Door_2', fx2, upper_return_mid_y + 0.020, fx2 + 0.025, upper_return_end_y - 0.050, kitchen_cabinet_door_bottom_z, kitchen_cabinet_door_top_z, :east, M_GREIGE_CAB)
 add_box(ke, return_x1, upper_corner_start_y, fx2, k_back, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB, 'L_Upper_Corner_Cabinet')
-add_box(ke, return_x1 + 0.020, upper_corner_start_y - 0.035, return_x1 + 0.285, upper_corner_start_y - 0.010, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_Corner_Door_1')
-add_box(ke, return_x1 + 0.315, upper_corner_start_y - 0.035, fx2 - 0.025, upper_corner_start_y - 0.010, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_Corner_Door_2')
+add_upper_cabinet_door_with_curved_grip(ke, 'L_Upper_Corner_Door_1', return_x1 + 0.020, upper_corner_start_y - 0.035, return_x1 + 0.285, upper_corner_start_y - 0.010, kitchen_cabinet_door_bottom_z, kitchen_cabinet_door_top_z, :south, M_GREIGE_CAB)
+add_upper_cabinet_door_with_curved_grip(ke, 'L_Upper_Corner_Door_2', return_x1 + 0.315, upper_corner_start_y - 0.035, fx2 - 0.025, upper_corner_start_y - 0.010, kitchen_cabinet_door_bottom_z, kitchen_cabinet_door_top_z, :south, M_GREIGE_CAB)
 add_box(ke, fx2, k_front + 0.015, ex2, k_back, 0.02, 0.10, M_METAL_BLK)
 add_box(ke, fx2, k_front, p2x2, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
 add_box(ke, hx2, k_front, ex2, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
@@ -2248,30 +2294,22 @@ end
 hob_grp.transform!(Geom::Transformation.translation(Geom::Vector3d.new(0, 0, (countertop_top_z - cooktop_original_top_z).m)))
 hood_cab = ke.add_group; hood_cab.name = 'Kitchen_Hanging_Cabinet_Integrated_Extractor'; hce = hood_cab.entities
 hood_door_split_x = (hx1 - 0.010 + ex2 - 0.010) * 0.5
-add_box(hce, hx1 - 0.020, 7.52, ex2, k_back, 1.685, hood_cabinet_top_z, M_CHARCOAL_CAB)
-add_box(hce, hx1 - 0.010, 7.485, hood_door_split_x - 0.015, 7.52, 1.700, hood_cabinet_door_top_z, M_GREIGE_CAB)
-add_box(hce, hood_door_split_x + 0.015, 7.485, ex2 - 0.010, 7.52, 1.700, hood_cabinet_door_top_z, M_GREIGE_CAB)
-add_box(hce, 5.53, 7.905, 5.88, k_back, 1.685, hood_cabinet_top_z, M_METAL_BLK, 'Kitchen_Extractor_Concealed_In_Cabinet_Back')
-add_box(hce, hx1 - 0.020, k_front + 0.015, ex2, 7.82, 1.605, 1.685, M_CHROME, 'Under_Cabinet_Range_Hood_Attached')
+add_box(hce, hx1 - 0.020, 7.52, ex2, k_back, hood_cabinet_bottom_z, hood_cabinet_top_z, M_CHARCOAL_CAB)
+add_upper_cabinet_door_with_curved_grip(hce, nil, hx1 - 0.010, 7.485, hood_door_split_x - 0.015, 7.52, hood_cabinet_door_bottom_z, hood_cabinet_door_top_z, :south, M_GREIGE_CAB)
+add_upper_cabinet_door_with_curved_grip(hce, nil, hood_door_split_x + 0.015, 7.485, ex2 - 0.010, 7.52, hood_cabinet_door_bottom_z, hood_cabinet_door_top_z, :south, M_GREIGE_CAB)
+add_box(hce, 5.53, 7.905, 5.88, k_back, hood_cabinet_bottom_z, hood_cabinet_top_z, M_METAL_BLK, 'Kitchen_Extractor_Concealed_In_Cabinet_Back')
+add_box(hce, hx1 - 0.020, k_front + 0.015, ex2, 7.82, 1.605, hood_cabinet_door_bottom_z, M_CHROME, 'Under_Cabinet_Range_Hood_Attached')
 add_box(hce, hx1 + 0.020, k_front + 0.035, ex2 - 0.020, k_front + 0.075, 1.600, 1.604, M_LED_GLOW)
 add_box(hce, hob_cx - 0.110, 7.63, hob_cx - 0.060, 7.68, 1.680, 1.705, M_CHROME, 'Extractor_Mount_Left')
 add_box(hce, hob_cx + 0.060, 7.63, hob_cx + 0.110, 7.68, 1.680, 1.705, M_CHROME, 'Extractor_Mount_Right')
-hood_door_handle_centers = [
-  (hx1 - 0.010 + hood_door_split_x - 0.015) * 0.5,
-  (hood_door_split_x + 0.015 + ex2 - 0.010) * 0.5
-]
-hood_door_handle_centers.each do |handle_x|
-add_box(hce, handle_x - 0.045, 7.455, handle_x + 0.045, 7.485, 1.718, 1.738, M_BRASS)
-end
 hood_cab.transform!(Geom::Transformation.translation(Geom::Vector3d.new(0, 0, hood_clearance_adjustment.m)))
 add_box(ke, 5.53, 8.155, 5.88, 8.19, kitchen_exhaust_vent_sill_z, kitchen_exhaust_vent_head_z, M_METAL_BLK)
 window_bridge_grp = ke.add_group; window_bridge_grp.name = 'Kitchen_Over_Window_Hanging_Cabinet_Bridge_W1'; wbe = window_bridge_grp.entities
 add_box(wbe, fx2, 7.52, hx1 - 0.020, k_back, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB)
 [[fx2 + 0.030, p1x2 - 0.020], [sx1 + 0.020, sx2 - 0.020], [p2x1 + 0.020, hx1 - 0.040]].each do |(dx1, dx2)|
-add_box(wbe, dx1, 7.485, dx2, 7.52, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB)
-add_box(wbe, (dx1 + dx2) / 2.0 - 0.045, 7.455, (dx1 + dx2) / 2.0 + 0.045, 7.485, 1.718, 1.738, M_BRASS)
+add_upper_cabinet_door_with_curved_grip(wbe, nil, dx1, 7.485, dx2, 7.52, kitchen_cabinet_door_bottom_z, kitchen_cabinet_door_top_z, :south, M_GREIGE_CAB)
 end
-add_box(wbe, fx2 + 0.040, 7.485, hx1 - 0.040, 7.515, upper_cabinet_bottom_z - 0.010, upper_cabinet_bottom_z - 0.001, M_LED_GLOW)
+add_box(wbe, fx2 + 0.040, 7.485, hx1 - 0.040, 7.515, upper_cabinet_bottom_z - 0.020, upper_cabinet_bottom_z - 0.011, M_LED_GLOW)
 add_box(ke, fx2, 7.472, hx1 - 0.020, 7.485, upper_cabinet_bottom_z - 0.007, upper_cabinet_bottom_z, M_CHARCOAL_CAB, 'Kitchen_Continuous_Aligned_Upper_Cabinet_Base')
 add_box(ke, hx1 - 0.020, 7.472, ex2, 7.485, 1.583, 1.590, M_CHARCOAL_CAB, 'Kitchen_Continuous_Aligned_Extractor_Cabinet_Base')
 add_box(ke, fx2 - 0.060, k_back - 0.025, fx2, k_back - 0.001, countertop_top_z, 1.60, M_CHARCOAL_CAB, 'Kitchen_Left_Pier_Filler')
@@ -2740,11 +2778,11 @@ up_vec = (eye_pt.x == target_pt.x && eye_pt.y == target_pt.y) ? Y_AXIS : Z_AXIS
 cam.set(eye_pt, target_pt, up_vec)
 cam.perspective = true
 cam.fov = fov_deg
+page.use_hidden_layers = true
 all_layers.each { |l| page.set_visibility(l, !hidden_layers.include?(l)) }
 page.set_visibility(L_OPENINGS_CLOSED, !openings_max)
 page.set_visibility(L_OPENINGS_MAX, openings_max)
 page.use_camera = true
-page.use_hidden_layers = true
 page.use_style = true
 page.use_rendering_options = true
 page.use_shadow_info = true
@@ -2757,10 +2795,10 @@ page
 end
 def create_opening_state_scene(model, name, openings_max)
 page = model.pages.add(name)
+page.use_hidden_layers = true
 page.set_visibility(L_OPENINGS_CLOSED, !openings_max)
 page.set_visibility(L_OPENINGS_MAX, openings_max)
 page.use_camera = false
-page.use_hidden_layers = true
 page.use_style = false
 page.use_rendering_options = false
 page.use_shadow_info = false
