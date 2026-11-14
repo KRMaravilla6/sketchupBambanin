@@ -1424,6 +1424,8 @@ end
 window_w3_y1 = 4.450
 window_w3_y2 = 5.850
 window_furniture_clearance = 0.250
+kitchen_exhaust_vent_sill_z = 2.410
+kitchen_exhaust_vent_head_z = 2.540
 gf_grp = ents.add_group; gf_grp.name = '04_Ground_Floor_Architecture'; gfe = gf_grp.entities
 gf_front_grp = gfe.add_group; gf_front_grp.name = 'GF_Front_Facade_Walls_and_Canopies'; gf_front_grp.layer = L_GF_EXT; gffe = gf_front_grp.entities
 gf_front_shell = gffe.add_group; gf_front_shell.name = 'GF_Front_Wall_Shell'
@@ -1459,8 +1461,8 @@ gf_int_ops = gfie.add_group; gf_int_ops.name = 'GF_Interior_Doors_Windows'
 gf_int_parts = [
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E5', 3.15, 2.075, 3.15, 8.075, 0.15, 0.0, 3.0, 3.0, [{ id: 'W3', type: :window, r: [window_w3_y1, window_w3_y2], z_sill: 0.84, z_head: 2.34, in_dir: 1, curtains: false }]),
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'E6', 3.075, 8.0, 9.85, 8.0, 0.15, 0.0, 3.0, 3.0, [
-{ id: 'W1', type: :window, r: [3.90, 5.40], z_sill: 0.945, z_head: 1.640, in_dir: -1, curtains: false },
-{ id: 'KITCHEN_EXHAUST_VENT', type: :vent, r: [5.53, 5.88], z_sill: 2.41, z_head: 2.65 },
+{ id: 'W1', type: :window, r: [3.90, 5.40], z_sill: 0.945, z_head: 1.400, in_dir: -1, curtains: false },
+{ id: 'KITCHEN_EXHAUST_VENT', type: :vent, r: [5.53, 5.88], z_sill: kitchen_exhaust_vent_sill_z, z_head: kitchen_exhaust_vent_head_z },
 { id: 'D5', type: :door, r: [6.20, 6.95] }, { id: 'W2', type: :window, r: [8.075, 8.625], z_sill: 1.54, z_head: 2.14, in_dir: -1, panels: 1, curtains: false }, { id: 'TB1_FAN_VENT', type: :vent, r: [9.12, 9.34], z_sill: 2.55, z_head: 2.75 }
 ]),
 build_monolithic_wall(gf_int_shell.entities, gf_int_ops.entities, 'I1', 7.0, 2.075, 7.0, 4.95, 0.10, 0.0, 3.0, 3.0, []),
@@ -2055,6 +2057,20 @@ kitchen_grp = de.add_group; kitchen_grp.name = 'Kitchen_Optimized_Layout'; ke = 
 k_back = 7.925
 k_depth = 0.600
 k_front = k_back - k_depth
+countertop_top_z = 0.855
+countertop_bottom_z = countertop_top_z - 0.045
+sink_rim_top_z = 0.875
+upper_cabinet_bottom_z = countertop_top_z + 0.575
+kitchen_ceiling_underside_z = 2.85
+kitchen_cabinet_top_z = kitchen_ceiling_underside_z - 0.30
+kitchen_cabinet_door_top_z = kitchen_cabinet_top_z - 0.018
+raise 'Kitchen exhaust opening must be concealed behind the extractor cabinet.' if kitchen_exhaust_vent_head_z >= kitchen_cabinet_top_z
+cooktop_original_top_z = 0.913
+hood_original_bottom_z = 1.600
+hood_clearance_m = 0.650
+hood_clearance_adjustment = countertop_top_z + hood_clearance_m - hood_original_bottom_z
+hood_cabinet_top_z = kitchen_cabinet_top_z - hood_clearance_adjustment
+hood_cabinet_door_top_z = kitchen_cabinet_door_top_z - hood_clearance_adjustment
 fx1 = 3.225; fx2 = 3.825
 p1x1 = 3.825; p1x2 = 4.410
 sx1 = 4.410; sx2 = 4.890
@@ -2101,9 +2117,9 @@ kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_swing_to_l_counter_cle
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_hinge_side', 'north')
 kitchen_grp.set_attribute('Kitchen_Layout', 'refrigerator_door_swing_clearance_mm', (fridge_swing * 1000).round)
 kitchen_grp.set_attribute('Kitchen_Layout', 'l_counter_return_mm', "600 x #{((k_back - return_y1) * 1000).round}")
-kitchen_grp.set_attribute('Kitchen_Layout', 'countertop_height_mm', 905)
-kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_bottom_mm', 1685)
-kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_top_mm', 2900)
+kitchen_grp.set_attribute('Kitchen_Layout', 'countertop_height_mm', (countertop_top_z * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_bottom_mm', (upper_cabinet_bottom_z * 1000).round)
+kitchen_grp.set_attribute('Kitchen_Layout', 'l_upper_cabinet_top_mm', (kitchen_cabinet_top_z * 1000).round)
 ref_grp = ke.add_group; ref_grp.name = 'Kitchen_Refrigerator_West_Wall_Facing_East'; re_k = ref_grp.entities
 ref_grp.set_attribute('Orientation', 'back', 'west wall; 30mm ventilation gap')
 ref_grp.set_attribute('Orientation', 'front', 'east into kitchen')
@@ -2114,9 +2130,17 @@ add_box(re_k, fridge_front_x - 0.040, fridge_y1 + 0.020, fridge_front_x, fridge_
 add_box(re_k, fridge_front_x - 0.040, fridge_y1 + 0.020, fridge_front_x, fridge_y2 - 0.020, 0.78, 1.88, M_CHROME, 'Refrigerator_Fresh_Food_Door')
 add_box(re_k, fridge_front_x, fridge_y1 + 0.050, fridge_front_x + 0.030, fridge_y1 + 0.080, 0.98, 1.58, M_METAL_BLK, 'Refrigerator_East_Facing_Handle')
 fridge_overhead_z1 = 2.00
-fridge_overhead_z2 = 2.90
+fridge_overhead_z2 = kitchen_cabinet_top_z
 add_box(re_k, return_x1, fridge_y1, fx2, fridge_y2, fridge_overhead_z1, fridge_overhead_z2, M_CHARCOAL_CAB, 'Refrigerator_Overhead_Storage')
-add_box(re_k, fx2, fridge_y1 + 0.010, fx2 + 0.025, fridge_y2 - 0.010, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door')
+fridge_door_mid_y = (fridge_y1 + fridge_y2) * 0.5
+fridge_door_gap = 0.020
+fridge_door_lower_y2 = fridge_door_mid_y - fridge_door_gap * 0.5
+fridge_door_upper_y1 = fridge_door_mid_y + fridge_door_gap * 0.5
+add_box(re_k, fx2, fridge_y1 + 0.010, fx2 + 0.025, fridge_door_lower_y2, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door_1')
+add_box(re_k, fx2, fridge_door_upper_y1, fx2 + 0.025, fridge_y2 - 0.010, fridge_overhead_z1 + 0.050, fridge_overhead_z2 - 0.020, M_GREIGE_CAB, 'Refrigerator_Overhead_Cabinet_Door_2')
+[(fridge_y1 + 0.010 + fridge_door_lower_y2) * 0.5, (fridge_door_upper_y1 + fridge_y2 - 0.010) * 0.5].each_with_index do |handle_y, i|
+add_box(re_k, fx2 + 0.025, handle_y - 0.025, fx2 + 0.050, handle_y + 0.025, 2.20, 2.24, M_BRASS, "Refrigerator_Overhead_Cabinet_Handle_#{i + 1}")
+end
 fridge_swing_group = ke.add_group
 fridge_swing_group.name = 'Refrigerator_Door_Swing_700mm_Clearance'
 swing_points = [Geom::Point3d.new(fridge_front_x.m, fridge_y2.m, 0.025.m)]
@@ -2127,79 +2151,79 @@ end
 swing_points << Geom::Point3d.new(fridge_front_x.m, fridge_y2.m, 0.025.m)
 fridge_swing_group.entities.add_edges(*swing_points).each { |edge| edge.material = M_BRASS }
 fridge_swing_group.set_attribute('Door_Swing', 'description', '700mm east-opening door sweep; adjacent cabinet door and L-counter remain clear')
-add_box(ke, return_x1 + 0.020, return_y1 + 0.040, return_x2 - 0.020, k_back - 0.040, 0.10, 0.86, M_CHARCOAL_CAB, 'L_Counter_West_Return_Base_Cabinet')
+add_box(ke, return_x1 + 0.020, return_y1 + 0.040, return_x2 - 0.020, k_back - 0.040, 0.10, countertop_bottom_z, M_CHARCOAL_CAB, 'L_Counter_West_Return_Base_Cabinet')
 add_box(ke, return_x1 + 0.040, return_y1 + 0.040, return_x2 - 0.040, k_back - 0.040, 0.02, 0.10, M_METAL_BLK, 'L_Counter_West_Return_Toe_Kick')
 return_mid_y = (return_y1 + k_back) * 0.5
 add_box(ke, return_x2 - 0.020, return_y1 + 0.040, return_x2, return_mid_y - 0.020, 0.14, 0.70, M_CHARCOAL_CAB, 'L_Counter_Return_East_Facing_Door_1')
 add_box(ke, return_x2 - 0.020, return_mid_y + 0.020, return_x2, k_back - 0.040, 0.14, 0.70, M_CHARCOAL_CAB, 'L_Counter_Return_East_Facing_Door_2')
 add_box(ke, return_x2 - 0.005, return_y1 + 0.235, return_x2 + 0.005, return_y1 + 0.285, 0.38, 0.42, M_BRASS, 'L_Counter_Return_Handle_1')
 add_box(ke, return_x2 - 0.005, return_mid_y + 0.125, return_x2 + 0.005, return_mid_y + 0.175, 0.38, 0.42, M_BRASS, 'L_Counter_Return_Handle_2')
-add_box(ke, return_x1, return_y1, return_x2, k_back, 0.86, 0.905, M_KITCHEN_TOP, 'L_Counter_West_Return_600x1050')
+add_box(ke, return_x1, return_y1, return_x2, k_back, countertop_bottom_z, countertop_top_z, M_KITCHEN_TOP, 'L_Counter_West_Return_600x1050')
 8.times do |drain_groove|
 groove_y = return_y1 + 0.115 + drain_groove * 0.042
-add_box(ke, return_x1 + 0.125, groove_y, return_x2 - 0.125, groove_y + 0.008, 0.906, 0.911, M_CHROME, "L_Return_Sink_Drainboard_Groove_#{drain_groove + 1}")
+add_box(ke, return_x1 + 0.125, groove_y, return_x2 - 0.125, groove_y + 0.008, countertop_top_z + 0.001, countertop_top_z + 0.006, M_CHROME, "L_Return_Sink_Drainboard_Groove_#{drain_groove + 1}")
 end
-add_box(ke, return_x1, return_y1, return_x1 + 0.020, k_back, 0.905, 1.48, M_SUBWAY_TILE, 'L_Counter_West_Wall_Backsplash')
+add_box(ke, return_x1, return_y1, return_x1 + 0.020, k_back, countertop_top_z, upper_cabinet_bottom_z - 0.030, M_SUBWAY_TILE, 'L_Counter_West_Wall_Backsplash')
 upper_return_end_y = k_back - 0.405
 upper_corner_start_y = upper_return_end_y
 upper_return_start_y = fridge_y2
 upper_return_mid_y = (upper_return_start_y + upper_return_end_y) * 0.5
 upper_fridge_joint_width = fx2 - return_x1
-upper_fridge_joint_height = [fridge_overhead_z2, 2.90].min - [fridge_overhead_z1, 1.685].max
+upper_fridge_joint_height = [fridge_overhead_z2, kitchen_cabinet_top_z].min - [fridge_overhead_z1, upper_cabinet_bottom_z].max
 raise 'Over-fridge cabinet does not meet the L-shaped upper return.' if (upper_return_start_y - fridge_y2).abs > 0.001 || upper_fridge_joint_width <= 0.0 || upper_fridge_joint_height <= 0.0
 kitchen_grp.set_attribute('Kitchen_Layout', 'over_fridge_upper_cabinet_joint', "flush-front L joint with shared #{(upper_fridge_joint_width * 1000).round}mm width and #{(upper_fridge_joint_height * 1000).round}mm height")
-add_box(ke, return_x1, upper_return_start_y, fx2, upper_return_end_y, 1.685, 2.90, M_CHARCOAL_CAB, 'L_Upper_West_Return_Cabinet')
-add_box(ke, fx2, upper_return_start_y + 0.020, fx2 + 0.025, upper_return_mid_y - 0.020, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_West_Return_Door_1')
-add_box(ke, fx2, upper_return_mid_y + 0.020, fx2 + 0.025, upper_return_end_y - 0.050, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_West_Return_Door_2')
+add_box(ke, return_x1, upper_return_start_y, fx2, upper_return_end_y, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB, 'L_Upper_West_Return_Cabinet')
+add_box(ke, fx2, upper_return_start_y + 0.020, fx2 + 0.025, upper_return_mid_y - 0.020, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_West_Return_Door_1')
+add_box(ke, fx2, upper_return_mid_y + 0.020, fx2 + 0.025, upper_return_end_y - 0.050, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_West_Return_Door_2')
 add_box(ke, fx2 + 0.025, upper_return_start_y + 0.135, fx2 + 0.050, upper_return_start_y + 0.185, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_1')
 add_box(ke, fx2 + 0.025, upper_return_mid_y + 0.100, fx2 + 0.050, upper_return_mid_y + 0.150, 2.20, 2.24, M_BRASS, 'L_Upper_West_Return_Handle_2')
-add_box(ke, return_x1, upper_corner_start_y, fx2, k_back, 1.685, 2.90, M_CHARCOAL_CAB, 'L_Upper_Corner_Cabinet')
-add_box(ke, return_x1 + 0.020, upper_corner_start_y - 0.035, return_x1 + 0.285, upper_corner_start_y - 0.010, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_Corner_Door_1')
-add_box(ke, return_x1 + 0.315, upper_corner_start_y - 0.035, fx2 - 0.025, upper_corner_start_y - 0.010, 1.705, 2.882, M_GREIGE_CAB, 'L_Upper_Corner_Door_2')
+add_box(ke, return_x1, upper_corner_start_y, fx2, k_back, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB, 'L_Upper_Corner_Cabinet')
+add_box(ke, return_x1 + 0.020, upper_corner_start_y - 0.035, return_x1 + 0.285, upper_corner_start_y - 0.010, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_Corner_Door_1')
+add_box(ke, return_x1 + 0.315, upper_corner_start_y - 0.035, fx2 - 0.025, upper_corner_start_y - 0.010, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB, 'L_Upper_Corner_Door_2')
 add_box(ke, fx2, k_front + 0.015, ex2, k_back, 0.02, 0.10, M_METAL_BLK)
-add_box(ke, fx2, k_front, p2x2, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
-add_box(ke, hx2, k_front, ex2, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
-add_box(ke, fx2 - 0.015, k_front - 0.040, sx1, k_back, 0.86, 0.905, M_KITCHEN_TOP)
-add_box(ke, sx2, k_front - 0.040, ex2 + 0.010, k_back, 0.86, 0.905, M_KITCHEN_TOP)
-add_box(ke, sx1, k_front - 0.040, sx2, k_front + 0.040, 0.86, 0.905, M_KITCHEN_TOP)
-add_box(ke, sx1, k_back - 0.105, sx2, k_back, 0.86, 0.905, M_KITCHEN_TOP)
+add_box(ke, fx2, k_front, p2x2, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
+add_box(ke, hx2, k_front, ex2, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
+add_box(ke, fx2 - 0.015, k_front - 0.040, sx1, k_back, countertop_bottom_z, countertop_top_z, M_KITCHEN_TOP)
+add_box(ke, sx2, k_front - 0.040, ex2 + 0.010, k_back, countertop_bottom_z, countertop_top_z, M_KITCHEN_TOP)
+add_box(ke, sx1, k_front - 0.040, sx2, k_front + 0.040, countertop_bottom_z, countertop_top_z, M_KITCHEN_TOP)
+add_box(ke, sx1, k_back - 0.105, sx2, k_back, countertop_bottom_z, countertop_top_z, M_KITCHEN_TOP)
 sink_in1 = sx1 + 0.040; sink_in2 = sx2 - 0.040
 sink_yf = k_front + 0.055; sink_yb = k_back - 0.130
-add_box(ke, sink_in1, sink_yf, sink_in2, sink_yf + 0.020, 0.895, 0.915, M_CHROME)
-add_box(ke, sink_in1, sink_yb - 0.020, sink_in2, sink_yb, 0.895, 0.915, M_CHROME)
-add_box(ke, sink_in1, sink_yf, sink_in1 + 0.020, sink_yb, 0.895, 0.915, M_CHROME)
-add_box(ke, sink_in2 - 0.020, sink_yf, sink_in2, sink_yb, 0.895, 0.915, M_CHROME)
-add_box(ke, sink_in1 + 0.020, sink_yf + 0.025, sink_in1 + 0.040, sink_yb - 0.025, 0.775, 0.895, M_CHROME)
-add_box(ke, sink_in2 - 0.040, sink_yf + 0.025, sink_in2 - 0.020, sink_yb - 0.025, 0.775, 0.895, M_CHROME)
-add_box(ke, sink_in1 + 0.040, sink_yf + 0.020, sink_in2 - 0.040, sink_yf + 0.040, 0.775, 0.895, M_CHROME)
-add_box(ke, sink_in1 + 0.040, sink_yb - 0.040, sink_in2 - 0.040, sink_yb - 0.020, 0.775, 0.895, M_CHROME)
-add_box(ke, sink_in1 + 0.040, sink_yf + 0.040, sink_in2 - 0.040, sink_yb - 0.040, 0.765, 0.785, M_METAL_BLK)
+add_box(ke, sink_in1, sink_yf, sink_in2, sink_yf + 0.020, sink_rim_top_z - 0.020, sink_rim_top_z, M_CHROME)
+add_box(ke, sink_in1, sink_yb - 0.020, sink_in2, sink_yb, sink_rim_top_z - 0.020, sink_rim_top_z, M_CHROME)
+add_box(ke, sink_in1, sink_yf, sink_in1 + 0.020, sink_yb, sink_rim_top_z - 0.020, sink_rim_top_z, M_CHROME)
+add_box(ke, sink_in2 - 0.020, sink_yf, sink_in2, sink_yb, sink_rim_top_z - 0.020, sink_rim_top_z, M_CHROME)
+add_box(ke, sink_in1 + 0.020, sink_yf + 0.025, sink_in1 + 0.040, sink_yb - 0.025, 0.735, sink_rim_top_z - 0.020, M_CHROME)
+add_box(ke, sink_in2 - 0.040, sink_yf + 0.025, sink_in2 - 0.020, sink_yb - 0.025, 0.735, sink_rim_top_z - 0.020, M_CHROME)
+add_box(ke, sink_in1 + 0.040, sink_yf + 0.020, sink_in2 - 0.040, sink_yf + 0.040, 0.735, sink_rim_top_z - 0.020, M_CHROME)
+add_box(ke, sink_in1 + 0.040, sink_yb - 0.040, sink_in2 - 0.040, sink_yb - 0.020, 0.735, sink_rim_top_z - 0.020, M_CHROME)
+add_box(ke, sink_in1 + 0.040, sink_yf + 0.040, sink_in2 - 0.040, sink_yb - 0.040, 0.725, 0.745, M_METAL_BLK)
 sink_cx = (sx1 + sx2) * 0.5; sink_cy = (sink_yf + sink_yb) * 0.5
-cylinder_mm(ke, 'Sink_Drain', 32, 4, M_CHROME, 24).transform!(Geom::Transformation.translation(Geom::Vector3d.new(sink_cx.m, sink_cy.m, 0.785.m)))
+cylinder_mm(ke, 'Sink_Drain', 32, 4, M_CHROME, 24).transform!(Geom::Transformation.translation(Geom::Vector3d.new(sink_cx.m, sink_cy.m, 0.745.m)))
 fx_mm = (sink_cx * 1000).round; fy_mm = ((k_back - 0.072) * 1000).round
-[[fx_mm, fy_mm, 905], [fx_mm, fy_mm, 1080], [fx_mm, fy_mm - 11, 1190], [fx_mm, fy_mm - 41, 1265], [fx_mm, fy_mm - 81, 1290], [fx_mm, fy_mm - 125, 1280], [fx_mm, fy_mm - 165, 1240], [fx_mm, fy_mm - 195, 1175]].each_cons(2).with_index do |pair, i|
+[[fx_mm, fy_mm, 855], [fx_mm, fy_mm, 1030], [fx_mm, fy_mm - 11, 1140], [fx_mm, fy_mm - 41, 1215], [fx_mm, fy_mm - 81, 1240], [fx_mm, fy_mm - 125, 1230], [fx_mm, fy_mm - 165, 1190], [fx_mm, fy_mm - 195, 1125]].each_cons(2).with_index do |pair, i|
 cylinder_between_mm(ke, "Kitchen_Gooseneck_Faucet_#{i + 1}", pair[0], pair[1], 8.5, M_CHROME, 16)
 end
-cylinder_between_mm(ke, 'Kitchen_Faucet_Lever', [fx_mm + 37, fy_mm, 930], [fx_mm + 80, fy_mm, 965], 4.5, M_BRASS, 12)
-8.times { |ri| add_box(ke, sink_in1 + 0.050 + ri * 0.042, sink_yf + 0.030, sink_in1 + 0.062 + ri * 0.042, sink_yb - 0.030, 0.915, 0.922, M_CHROME) }
-rounded_box_at(ke, 'Oak_Cutting_Board', p2x1 + 0.040, k_front + 0.055, 0.905, 250, 200, 18, 20, M_WOOD_OAK)
-revolve_open_hollow_mesh(ke, 'Sink_Soap_Pump', [[0, 0], [32, 0], [36, 95], [14, 115], [12, 145], [0, 145]], M_CHROME, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new((p2x1 + 0.18).m, (k_back - 0.085).m, 0.905.m)))
-add_box(ke, fx2 - 0.015, k_front - 0.050, fx2 + 0.035, k_front - 0.020, 0.14, 0.83, M_CHARCOAL_CAB)
+cylinder_between_mm(ke, 'Kitchen_Faucet_Lever', [fx_mm + 37, fy_mm, 880], [fx_mm + 80, fy_mm, 915], 4.5, M_BRASS, 12)
+8.times { |ri| add_box(ke, sink_in1 + 0.050 + ri * 0.042, sink_yf + 0.030, sink_in1 + 0.062 + ri * 0.042, sink_yb - 0.030, sink_rim_top_z, sink_rim_top_z + 0.007, M_CHROME) }
+rounded_box_at(ke, 'Oak_Cutting_Board', p2x1 + 0.040, k_front + 0.055, countertop_top_z, 250, 200, 18, 20, M_WOOD_OAK)
+revolve_open_hollow_mesh(ke, 'Sink_Soap_Pump', [[0, 0], [32, 0], [36, 95], [14, 115], [12, 145], [0, 145]], M_CHROME, 20).transform!(Geom::Transformation.translation(Geom::Vector3d.new((p2x1 + 0.18).m, (k_back - 0.085).m, countertop_top_z.m)))
+add_box(ke, fx2 - 0.015, k_front - 0.050, fx2 + 0.035, k_front - 0.020, 0.14, 0.78, M_CHARCOAL_CAB)
 add_box(ke, p1x1 + 0.040, k_front - 0.050, (p1x1 + p1x2) * 0.5 - 0.015, k_front - 0.020, 0.14, 0.68, M_CHARCOAL_CAB)
 add_box(ke, (p1x1 + p1x2) * 0.5 + 0.015, k_front - 0.050, p1x2 - 0.020, k_front - 0.020, 0.14, 0.68, M_CHARCOAL_CAB)
-add_box(ke, p1x1 + 0.040, k_front - 0.050, p1x2 - 0.020, k_front - 0.020, 0.70, 0.83, M_CHARCOAL_CAB)
+add_box(ke, p1x1 + 0.040, k_front - 0.050, p1x2 - 0.020, k_front - 0.020, 0.70, 0.78, M_CHARCOAL_CAB)
 add_box(ke, p2x1 + 0.020, k_front - 0.050, p2x2 - 0.020, k_front - 0.020, 0.14, 0.35, M_CHARCOAL_CAB)
 add_box(ke, p2x1 + 0.020, k_front - 0.050, p2x2 - 0.020, k_front - 0.020, 0.38, 0.57, M_CHARCOAL_CAB)
-add_box(ke, p2x1 + 0.020, k_front - 0.050, p2x2 - 0.020, k_front - 0.020, 0.60, 0.83, M_CHARCOAL_CAB)
+add_box(ke, p2x1 + 0.020, k_front - 0.050, p2x2 - 0.020, k_front - 0.020, 0.55, 0.78, M_CHARCOAL_CAB)
 [0.245, 0.485, 0.695].each { |hz| add_box(ke, (p2x1 + p2x2) * 0.5 - 0.040, k_front - 0.080, (p2x1 + p2x2) * 0.5 + 0.040, k_front - 0.050, hz, hz + 0.02, M_BRASS) }
 add_box(ke, p1x1 + 0.180, k_front - 0.070, p1x1 + 0.250, k_front - 0.050, 0.38, 0.40, M_BRASS)
 add_box(ke, p1x2 - 0.250, k_front - 0.070, p1x2 - 0.180, k_front - 0.050, 0.38, 0.40, M_BRASS)
 oven_grp = ke.add_group; oven_grp.name = 'Built_In_Oven_Under_Stove'; oe = oven_grp.entities
 add_box(oe, hx1, k_front + 0.010, hx2, k_back - 0.025, 0.10, 0.24, M_METAL_BLK)
-add_box(oe, hx1, k_back - 0.145, hx2, k_back - 0.025, 0.24, 0.86, M_METAL_BLK)
-add_box(oe, hx1, k_front + 0.010, hx1 + 0.055, k_back - 0.145, 0.24, 0.86, M_METAL_BLK)
-add_box(oe, hx2 - 0.055, k_front + 0.010, hx2, k_back - 0.145, 0.24, 0.86, M_METAL_BLK)
-add_box(oe, hx1 + 0.055, k_front + 0.010, hx2 - 0.055, k_back - 0.145, 0.62, 0.86, M_METAL_BLK)
+add_box(oe, hx1, k_back - 0.145, hx2, k_back - 0.025, 0.24, countertop_top_z, M_METAL_BLK)
+add_box(oe, hx1, k_front + 0.010, hx1 + 0.055, k_back - 0.145, 0.24, countertop_top_z, M_METAL_BLK)
+add_box(oe, hx2 - 0.055, k_front + 0.010, hx2, k_back - 0.145, 0.24, countertop_top_z, M_METAL_BLK)
+add_box(oe, hx1 + 0.055, k_front + 0.010, hx2 - 0.055, k_back - 0.145, 0.62, countertop_top_z, M_METAL_BLK)
 add_box(oe, hx1 + 0.090, k_back - 0.175, hx2 - 0.090, k_back - 0.145, 0.34, 0.56, M_LED_GLOW)
 [0.34, 0.46].each { |rz| add_box(oe, hx1 + 0.065, k_front + 0.030, hx2 - 0.065, k_back - 0.215, rz, rz + 0.012, M_CHROME) }
 add_box(oe, hx1 + 0.010, k_front - 0.060, hx2 - 0.010, k_front + 0.010, 0.11, 0.20, M_CHROME)
@@ -2212,38 +2236,47 @@ add_box(oe, hx1 + 0.045, k_front - 0.125, hx2 - 0.045, k_front - 0.097, 0.625, 0
 add_box(oe, hx1 + 0.010, k_front - 0.065, hx2 - 0.010, k_front + 0.010, 0.70, 0.85, M_METAL_BLK)
 add_box(oe, hx1 + 0.165, k_front - 0.079, hx2 - 0.165, k_front - 0.067, 0.74, 0.81, M_BURNER_RED)
 [hx1 + 0.055, hx1 + 0.115, hx2 - 0.155, hx2 - 0.095].each { |kx| add_box(oe, kx, k_front - 0.103, kx + 0.042, k_front - 0.067, 0.755, 0.795, M_BRASS) }
-add_box(ke, hx1, k_front, hx1 + 0.045, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
-add_box(ke, hx2 - 0.045, k_front, hx2, k_back, 0.10, 0.86, M_CHARCOAL_CAB)
+add_box(ke, hx1, k_front, hx1 + 0.045, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
+add_box(ke, hx2 - 0.045, k_front, hx2, k_back, 0.10, countertop_bottom_z, M_CHARCOAL_CAB)
 hob_cx = (hx1 + hx2) * 0.5
-rounded_box_at(ke, 'Induction_Black_Glass_Hob', hx1 + 0.020, k_front + 0.040, 0.905, ((hx2 - hx1 - 0.040) * 1000).round, 490, 8, 16, M_HOB_GLASS)
+hob_grp = ke.add_group; hob_grp.name = 'Built_In_Induction_Cooktop'; hob_ents = hob_grp.entities
+rounded_box_at(hob_ents, 'Induction_Black_Glass_Hob', hx1 + 0.020, k_front + 0.040, cooktop_original_top_z - 0.008, ((hx2 - hx1 - 0.040) * 1000).round, 490, 8, 16, M_HOB_GLASS)
 [[hob_cx - 0.12, k_front + 0.175], [hob_cx + 0.12, k_front + 0.175], [hob_cx - 0.12, k_front + 0.395], [hob_cx + 0.12, k_front + 0.395]].each_with_index do |(bx, by), i|
-cylinder_mm(ke, "Induction_Ring_#{i + 1}", 62, 2.0, M_CHROME, 32).transform!(Geom::Transformation.translation(Geom::Vector3d.new(bx.m, by.m, 0.913.m)))
-cylinder_mm(ke, "Induction_Core_#{i + 1}", 56, 2.2, M_HOB_GLASS, 32).transform!(Geom::Transformation.translation(Geom::Vector3d.new(bx.m, by.m, 0.9135.m)))
+cylinder_mm(hob_ents, "Induction_Ring_#{i + 1}", 62, 2.0, M_CHROME, 32).transform!(Geom::Transformation.translation(Geom::Vector3d.new(bx.m, by.m, cooktop_original_top_z.m)))
+cylinder_mm(hob_ents, "Induction_Core_#{i + 1}", 56, 2.2, M_HOB_GLASS, 32).transform!(Geom::Transformation.translation(Geom::Vector3d.new(bx.m, by.m, (cooktop_original_top_z + 0.0005).m)))
 end
+hob_grp.transform!(Geom::Transformation.translation(Geom::Vector3d.new(0, 0, (countertop_top_z - cooktop_original_top_z).m)))
 hood_cab = ke.add_group; hood_cab.name = 'Kitchen_Hanging_Cabinet_Integrated_Extractor'; hce = hood_cab.entities
-add_box(hce, hx1 - 0.020, 7.52, ex2, k_back, 1.685, 2.90, M_CHARCOAL_CAB)
-add_box(hce, hx1 - 0.010, 7.485, hob_cx - 0.015, 7.52, 1.700, 2.882, M_GREIGE_CAB)
-add_box(hce, hob_cx + 0.015, 7.485, ex2 - 0.010, 7.52, 1.700, 2.882, M_GREIGE_CAB)
-add_box(hce, 5.53, 7.905, 5.88, k_back, 1.685, 2.65, M_METAL_BLK, 'Kitchen_Extractor_Concealed_In_Cabinet_Back')
+hood_door_split_x = (hx1 - 0.010 + ex2 - 0.010) * 0.5
+add_box(hce, hx1 - 0.020, 7.52, ex2, k_back, 1.685, hood_cabinet_top_z, M_CHARCOAL_CAB)
+add_box(hce, hx1 - 0.010, 7.485, hood_door_split_x - 0.015, 7.52, 1.700, hood_cabinet_door_top_z, M_GREIGE_CAB)
+add_box(hce, hood_door_split_x + 0.015, 7.485, ex2 - 0.010, 7.52, 1.700, hood_cabinet_door_top_z, M_GREIGE_CAB)
+add_box(hce, 5.53, 7.905, 5.88, k_back, 1.685, hood_cabinet_top_z, M_METAL_BLK, 'Kitchen_Extractor_Concealed_In_Cabinet_Back')
 add_box(hce, hx1 - 0.020, k_front + 0.015, ex2, 7.82, 1.605, 1.685, M_CHROME, 'Under_Cabinet_Range_Hood_Attached')
 add_box(hce, hx1 + 0.020, k_front + 0.035, ex2 - 0.020, k_front + 0.075, 1.600, 1.604, M_LED_GLOW)
 add_box(hce, hob_cx - 0.110, 7.63, hob_cx - 0.060, 7.68, 1.680, 1.705, M_CHROME, 'Extractor_Mount_Left')
 add_box(hce, hob_cx + 0.060, 7.63, hob_cx + 0.110, 7.68, 1.680, 1.705, M_CHROME, 'Extractor_Mount_Right')
-[[hob_cx - 0.155, hob_cx - 0.065], [hob_cx + 0.065, hob_cx + 0.155]].each do |x1, x2|
-add_box(hce, x1, 7.455, x2, 7.485, 1.718, 1.738, M_BRASS)
+hood_door_handle_centers = [
+  (hx1 - 0.010 + hood_door_split_x - 0.015) * 0.5,
+  (hood_door_split_x + 0.015 + ex2 - 0.010) * 0.5
+]
+hood_door_handle_centers.each do |handle_x|
+add_box(hce, handle_x - 0.045, 7.455, handle_x + 0.045, 7.485, 1.718, 1.738, M_BRASS)
 end
-add_box(ke, 5.53, 8.155, 5.88, 8.19, 2.41, 2.65, M_METAL_BLK)
+hood_cab.transform!(Geom::Transformation.translation(Geom::Vector3d.new(0, 0, hood_clearance_adjustment.m)))
+add_box(ke, 5.53, 8.155, 5.88, 8.19, kitchen_exhaust_vent_sill_z, kitchen_exhaust_vent_head_z, M_METAL_BLK)
 window_bridge_grp = ke.add_group; window_bridge_grp.name = 'Kitchen_Over_Window_Hanging_Cabinet_Bridge_W1'; wbe = window_bridge_grp.entities
-add_box(wbe, fx2, 7.52, hx1 - 0.020, k_back, 1.685, 2.90, M_CHARCOAL_CAB)
+add_box(wbe, fx2, 7.52, hx1 - 0.020, k_back, upper_cabinet_bottom_z, kitchen_cabinet_top_z, M_CHARCOAL_CAB)
 [[fx2 + 0.030, p1x2 - 0.020], [sx1 + 0.020, sx2 - 0.020], [p2x1 + 0.020, hx1 - 0.040]].each do |(dx1, dx2)|
-add_box(wbe, dx1, 7.485, dx2, 7.52, 1.700, 2.882, M_GREIGE_CAB)
+add_box(wbe, dx1, 7.485, dx2, 7.52, upper_cabinet_bottom_z + 0.020, kitchen_cabinet_door_top_z, M_GREIGE_CAB)
 add_box(wbe, (dx1 + dx2) / 2.0 - 0.045, 7.455, (dx1 + dx2) / 2.0 + 0.045, 7.485, 1.718, 1.738, M_BRASS)
 end
-add_box(wbe, fx2 + 0.040, 7.485, hx1 - 0.040, 7.515, 1.675, 1.684, M_LED_GLOW)
-add_box(ke, fx2, 7.472, ex2, 7.485, 1.678, 1.685, M_CHARCOAL_CAB, 'Kitchen_Continuous_Aligned_Upper_Cabinet_Base')
-add_box(ke, fx2 - 0.060, k_back - 0.025, fx2, k_back - 0.001, 0.905, 1.60, M_CHARCOAL_CAB, 'Kitchen_Left_Pier_Filler')
-add_box(ke, fx2, k_back - 0.025, hx1 - 0.020, k_back - 0.001, 0.905, 0.945, M_SUBWAY_TILE, 'Kitchen_Under_Window_Subway_Backsplash')
-add_box(ke, hx1 - 0.020, k_back - 0.025, ex2, k_back - 0.001, 0.905, 1.605, M_SUBWAY_TILE, 'Kitchen_Cooktop_Subway_Backsplash')
+add_box(wbe, fx2 + 0.040, 7.485, hx1 - 0.040, 7.515, upper_cabinet_bottom_z - 0.010, upper_cabinet_bottom_z - 0.001, M_LED_GLOW)
+add_box(ke, fx2, 7.472, hx1 - 0.020, 7.485, upper_cabinet_bottom_z - 0.007, upper_cabinet_bottom_z, M_CHARCOAL_CAB, 'Kitchen_Continuous_Aligned_Upper_Cabinet_Base')
+add_box(ke, hx1 - 0.020, 7.472, ex2, 7.485, 1.583, 1.590, M_CHARCOAL_CAB, 'Kitchen_Continuous_Aligned_Extractor_Cabinet_Base')
+add_box(ke, fx2 - 0.060, k_back - 0.025, fx2, k_back - 0.001, countertop_top_z, 1.60, M_CHARCOAL_CAB, 'Kitchen_Left_Pier_Filler')
+add_box(ke, fx2, k_back - 0.025, hx1 - 0.020, k_back - 0.001, countertop_top_z, 0.945, M_SUBWAY_TILE, 'Kitchen_Under_Window_Subway_Backsplash')
+add_box(ke, hx1 - 0.020, k_back - 0.025, ex2, k_back - 0.001, countertop_top_z, 1.560, M_SUBWAY_TILE, 'Kitchen_Cooktop_Subway_Backsplash')
 srv_grp = gffe_furn.add_group; srv_grp.name = 'Room_GF_Service_Area'; se_srv = srv_grp.entities
 add_box(se_srv, 3.30, 8.075, 6.00, 8.65, 0.015, 0.85, M_WOOD_OAK)
 add_box(se_srv, 3.28, 8.075, 6.02, 8.68, 0.85, 0.89, M_MARBLE_WHT)
